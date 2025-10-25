@@ -1,1 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- menu_font_viewer.xml
+     قائمة toolbar لشاشة عارض الخطوط
+     
+     تحتوي على أيقونة واحدة فقط: أيقونة المعلومات
+     عند الضغط عليها، تظهر نافذة dialog تعرض معلومات الخط المحدد
+-->
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
 
+    <item
+        android:id="@+id/menu_font_info"
+        android:icon="@drawable/ic_oui_info_outline"
+        android:title="@string/font_viewer_info"
+        app:showAsAction="always" />
+
+</menu>
