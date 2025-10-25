@@ -8,9 +8,6 @@ import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
@@ -20,8 +17,6 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 import androidx.preference.PreferenceManager;
 
@@ -33,12 +28,8 @@ import java.io.InputStream;
 import java.io.RandomAccessFile;
 
 /**
- * FontViewerFragment - عارض الخطوط مع ميزة عرض معلومات الخط
- * 
- * التحديث الجديد:
- * - إضافة أيقونة معلومات في Toolbar
- * - استخدام FontInfoExtractor لاستخراج بيانات الخط
- * - عرض Dialog بتصميم OneUI يحتوي على جميع معلومات الخط
+ * FontViewerFragment - عارض الخطوط مع تحديث تلقائي لنص المعاينة
+ * تم تصحيح سطر mimeTypes الذي تسبّب في خطأ التجميع (تمت إزالة انقسام السلسلة).
  */
 public class FontViewerFragment extends Fragment implements SharedPreferences.OnSharedPreferenceChangeListener {
 
@@ -59,14 +50,12 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
     private String currentFontRealName;
     private Typeface currentTypeface;
 
+    // حفظ آخر نص معاينة لمعرفة إذا تغير
     private String lastPreviewText = "";
     private SharedPreferences sharedPreferences;
 
     private ActivityResultLauncher<Intent> fontPickerLauncher;
     private OnFontChangedListener fontChangedListener;
-
-    // متغير لحفظ معلومات الخط الحالي
-    private FontInfoExtractor.FontInfo currentFontInfo;
 
     public interface OnFontChangedListener {
         void onFontChanged(String fontRealName, String fontFileName);
@@ -90,9 +79,6 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        
-        // تفعيل القائمة (Menu) لهذا Fragment
-        setHasOptionsMenu(true);
 
         fontPickerLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
@@ -121,9 +107,6 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
                                 savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        // إعداد Toolbar لعرض القائمة
-        setupToolbar();
-
         initViews(view);
         selectFontButton.setOnClickListener(v -> openFontPicker());
 
@@ -142,165 +125,24 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
             loadLastUsedFont();
         }
 
+        // تحديث نص المعاينة لأول مرة
         updatePreviewTexts();
-    }
-
-    /**
-     * إعداد Toolbar لعرض أيقونة المعلومات
-     */
-    private void setupToolbar() {
-        if (getActivity() instanceof AppCompatActivity) {
-            AppCompatActivity activity = (AppCompatActivity) getActivity();
-            if (activity.getSupportActionBar() != null) {
-                // تفعيل عرض القائمة في الـ Toolbar
-                activity.getSupportActionBar().setDisplayShowTitleEnabled(true);
-            }
-        }
-    }
-
-    /**
-     * إنشاء القائمة (Menu) في Toolbar
-     */
-    @Override
-    public void onCreateOptionsMenu(@NonNull Menu menu, @NonNull MenuInflater inflater) {
-        super.onCreateOptionsMenu(menu, inflater);
-        // إضافة menu الخاص بعارض الخطوط
-        inflater.inflate(R.menu.menu_font_viewer, menu);
-    }
-
-    /**
-     * التعامل مع الضغط على عناصر القائمة
-     */
-    @Override
-    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
-        if (item.getItemId() == R.id.menu_font_info) {
-            showFontInfoDialog();
-            return true;
-        }
-        return super.onOptionsItemSelected(item);
-    }
-
-    /**
-     * عرض نافذة معلومات الخط
-     * 
-     * هذه الدالة تتحقق أولاً من وجود خط محدد، ثم تستخدم FontInfoExtractor
-     * لاستخراج جميع المعلومات، وأخيراً تعرض Dialog بتصميم OneUI
-     */
-    private void showFontInfoDialog() {
-        // التحقق من وجود خط محدد
-        if (currentFontPath == null || currentFontPath.isEmpty()) {
-            Toast.makeText(requireContext(),
-                getString(R.string.font_info_no_font),
-                Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        // إذا لم تكن المعلومات محملة مسبقاً، نستخرجها الآن
-        if (currentFontInfo == null) {
-            File fontFile = new File(currentFontPath);
-            currentFontInfo = FontInfoExtractor.extractFontInfo(fontFile);
-        }
-
-        // إنشاء View الـ Dialog من Layout
-        View dialogView = LayoutInflater.from(requireContext())
-                .inflate(R.layout.dialog_font_info, null);
-
-        // ملء البيانات في الـ Views
-        populateFontInfoViews(dialogView);
-
-        // إنشاء وعرض الـ Dialog
-        new AlertDialog.Builder(requireContext())
-                .setTitle(R.string.font_info_dialog_title)
-                .setView(dialogView)
-                .setPositiveButton(android.R.string.ok, null)
-                .show();
-    }
-
-    /**
-     * ملء معلومات الخط في Views الخاصة بالـ Dialog
-     * 
-     * @param dialogView الـ View الرئيسي للـ Dialog
-     */
-    private void populateFontInfoViews(View dialogView) {
-        // المعلومات الأساسية
-        TextView fullNameValue = dialogView.findViewById(R.id.font_info_full_name_value);
-        TextView familyNameValue = dialogView.findViewById(R.id.font_info_family_name_value);
-        TextView styleValue = dialogView.findViewById(R.id.font_info_style_value);
-        
-        fullNameValue.setText(currentFontInfo.fullName);
-        familyNameValue.setText(currentFontInfo.familyName);
-        styleValue.setText(currentFontInfo.styleName);
-
-        // التفاصيل التقنية
-        TextView versionValue = dialogView.findViewById(R.id.font_info_version_value);
-        TextView typeValue = dialogView.findViewById(R.id.font_info_type_value);
-        
-        versionValue.setText(currentFontInfo.version);
-        
-        // تحديد نوع الخط (Variable أم Static)
-        String fontType = currentFontInfo.isVariable 
-                ? getString(R.string.font_info_type_variable)
-                : getString(R.string.font_info_type_static);
-        typeValue.setText(fontType);
-
-        // معلومات المصمم (اختيارية - تظهر فقط إذا كانت موجودة)
-        
-        // المصمم
-        LinearLayout designerContainer = dialogView.findViewById(R.id.font_info_designer_container);
-        View designerDivider = dialogView.findViewById(R.id.font_info_designer_divider);
-        TextView designerValue = dialogView.findViewById(R.id.font_info_designer_value);
-        
-        if (currentFontInfo.designer != null && !currentFontInfo.designer.isEmpty()) {
-            designerContainer.setVisibility(View.VISIBLE);
-            designerValue.setText(currentFontInfo.designer);
-        } else {
-            designerContainer.setVisibility(View.GONE);
-        }
-
-        // حقوق النشر
-        LinearLayout copyrightContainer = dialogView.findViewById(R.id.font_info_copyright_container);
-        View copyrightDivider = dialogView.findViewById(R.id.font_info_copyright_divider);
-        TextView copyrightValue = dialogView.findViewById(R.id.font_info_copyright_value);
-        
-        if (currentFontInfo.copyright != null && !currentFontInfo.copyright.isEmpty()) {
-            copyrightContainer.setVisibility(View.VISIBLE);
-            copyrightValue.setText(currentFontInfo.copyright);
-            
-            // إظهار الخط الفاصل إذا كان المصمم موجوداً أيضاً
-            if (designerContainer.getVisibility() == View.VISIBLE) {
-                designerDivider.setVisibility(View.VISIBLE);
-            }
-        } else {
-            copyrightContainer.setVisibility(View.GONE);
-        }
-
-        // الوصف
-        LinearLayout descriptionContainer = dialogView.findViewById(R.id.font_info_description_container);
-        TextView descriptionValue = dialogView.findViewById(R.id.font_info_description_value);
-        
-        if (currentFontInfo.description != null && !currentFontInfo.description.isEmpty()) {
-            descriptionContainer.setVisibility(View.VISIBLE);
-            descriptionValue.setText(currentFontInfo.description);
-            
-            // إظهار الخط الفاصل إذا كان حقوق النشر موجودة أيضاً
-            if (copyrightContainer.getVisibility() == View.VISIBLE) {
-                copyrightDivider.setVisibility(View.VISIBLE);
-            }
-        } else {
-            descriptionContainer.setVisibility(View.GONE);
-        }
     }
 
     @Override
     public void onResume() {
         super.onResume();
 
+        // تسجيل المستمع عند إظهار الشاشة
         sharedPreferences = PreferenceManager.getDefaultSharedPreferences(requireContext());
         sharedPreferences.registerOnSharedPreferenceChangeListener(this);
 
+        // الحصول على نص المعاينة الحالي من الإعدادات
         String currentPreviewText = SettingsHelper.getPreviewText(requireContext());
 
+        // التحقق: هل تغير النص منذ آخر مرة؟
         if (!currentPreviewText.equals(lastPreviewText)) {
+            // نعم تغير! نحدّث المعاينة
             lastPreviewText = currentPreviewText;
             updatePreviewTexts();
         }
@@ -323,16 +165,25 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
         }
     }
 
+    /**
+     * تحديث نصوص المعاينة بالنص المحفوظ في الإعدادات
+     * مع تطبيق الخط المخصص إذا كان موجوداً
+     */
     private void updatePreviewTexts() {
         if (previewSentence == null) {
             return;
         }
 
+        // الحصول على نص المعاينة المخصص من الإعدادات
         String previewText = SettingsHelper.getPreviewText(requireContext());
 
+        // تطبيق النص على المعاينة
         previewSentence.setText(previewText);
+
+        // الأرقام تبقى كما هي (افتراضية)
         previewNumbers.setText(getString(R.string.font_viewer_english_numbers));
 
+        // تطبيق الخط المخصص إذا كان موجوداً
         if (currentTypeface != null) {
             applyFontToPreviewTexts();
         }
@@ -502,9 +353,6 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
                 currentFontFileName = fileName;
                 currentFontRealName = realName;
 
-                // استخراج معلومات الخط عند تحميله
-                currentFontInfo = FontInfoExtractor.extractFontInfo(fontFile);
-
                 applyFontToPreviewTexts();
 
                 if (fontChangedListener != null) {
@@ -535,7 +383,6 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
         currentFontPath = null;
         currentFontFileName = null;
         currentFontRealName = null;
-        currentFontInfo = null; // إعادة تعيين معلومات الخط
 
         Typeface defaultTypeface = Typeface.DEFAULT;
         previewSentence.setTypeface(defaultTypeface);
@@ -623,4 +470,4 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
     public boolean hasFontSelected() {
         return currentFontPath != null && !currentFontPath.isEmpty();
     }
-            }
+}
