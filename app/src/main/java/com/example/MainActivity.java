@@ -17,12 +17,26 @@ import java.util.List;
 import dev.oneuiproject.oneui.layout.DrawerLayout;
 
 /**
- * MainActivity - النسخة المحدثة مع Menu ديناميكي
+ * MainActivity - النسخة المحدثة والمُصلحة
  * 
- * التحديثات الجديدة:
- * 1. إضافة Menu ديناميكي يظهر أيقونة المعلومات في شاشة FontViewer فقط
- * 2. التواصل مع FontViewerFragment لعرض معلومات الخط عند الضغط
- * 3. تحديث Menu تلقائياً عند تغيير Fragment
+ * الإصلاح الرئيسي:
+ * إضافة setSupportActionBar() لربط Toolbar الموجود في DrawerLayout
+ * بنظام Menu في Android. بدون هذا السطر، لن تظهر أيقونات Menu أبداً!
+ * 
+ * كيف يعمل DrawerLayout في OneUI Design؟
+ * --------------------------------
+ * DrawerLayout من مكتبة OneUI Design يحتوي على Toolbar مُدمج بداخله.
+ * هذا Toolbar موجود ويعمل بشكل طبيعي لعرض العناوين والأزرار الأساسية،
+ * لكنه غير متصل بنظام Menu في Android افتراضياً.
+ * 
+ * لماذا نحتاج setSupportActionBar()؟
+ * ------------------------------------
+ * عندما تستدعي onCreateOptionsMenu() أو onPrepareOptionsMenu()، يبحث Android
+ * عن ActionBar "رسمي" مُسجّل للـ Activity. إذا لم يجد واحداً، يتجاهل Menu
+ * بالكامل حتى لو كان الملف XML موجوداً والدوال مكتوبة بشكل صحيح!
+ * 
+ * setSupportActionBar() تخبر Android: "استخدم هذا Toolbar كـ ActionBar الرسمي"
+ * وبالتالي يصبح كل شيء متصلاً ويعمل كما هو متوقع.
  */
 public class MainActivity extends BaseActivity implements FontViewerFragment.OnFontChangedListener {
 
@@ -51,6 +65,31 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
         setContentView(R.layout.activity_main);
 
         initViews();
+        
+        // ★★★ هذا هو السطر المهم الذي يحل المشكلة! ★★★
+        //
+        // ماذا يحدث هنا؟
+        // ----------------
+        // 1. mDrawerLayout.getToolbar() يحصل على Toolbar المُدمج داخل DrawerLayout
+        // 2. setSupportActionBar() يُسجّل هذا Toolbar كـ ActionBar رسمي للـ Activity
+        // 3. بعد هذا السطر، سيعمل كل شيء متعلق بـ Menu بشكل صحيح:
+        //    - onCreateOptionsMenu() سيتم استدعاؤه تلقائياً
+        //    - onPrepareOptionsMenu() سيعمل عند استدعاء invalidateOptionsMenu()
+        //    - Menu items ستظهر في Toolbar
+        //    - onOptionsItemSelected() سيتم استدعاؤه عند الضغط على الأيقونات
+        //
+        // لماذا لم يكن موجوداً من قبل؟
+        // ----------------------------
+        // في بعض التطبيقات، يكون Toolbar منفصل في XML ونستدعي setSupportActionBar()
+        // بشكل واضح. لكن في مكتبة OneUI Design، الـ DrawerLayout يخفي Toolbar
+        // بداخله، لذلك من السهل نسيان هذا السطر المهم!
+        //
+        // ملاحظة مهمة:
+        // -------------
+        // يجب استدعاء هذا السطر بعد initViews() لأننا نحتاج أن يكون mDrawerLayout
+        // قد تم تهيئته أولاً عبر findViewById() داخل initViews()
+        setSupportActionBar(mDrawerLayout.getToolbar());
+        
         initFragmentsList();
         
         if (savedInstanceState != null) {
@@ -116,9 +155,9 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
                         showFragmentFast(position);
                         updateDrawerTitle(position);
                         
-                        // ★★★ تحديث Menu عند تغيير Fragment ★★★
-                        // هذا السطر مهم جداً: يخبر Android بإعادة إنشاء Menu
-                        // مما يؤدي لاستدعاء onPrepareOptionsMenu تلقائياً
+                        // تحديث Menu عند تغيير Fragment
+                        // هذا يخبر Android بإعادة استدعاء onPrepareOptionsMenu()
+                        // وبالتالي إظهار/إخفاء الأيقونات حسب الحاجة
                         invalidateOptionsMenu();
                         
                         return true;
@@ -154,10 +193,10 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
     }
 
     /**
-     * ★★★ دالة جديدة: إنشاء Menu ★★★
+     * إنشاء Menu - يتم استدعاؤها تلقائياً بعد onCreate()
      * 
-     * هذه الدالة تُستدعى تلقائياً عند إنشاء Activity لأول مرة
-     * نستخدمها لتضخيم (inflate) ملف menu.xml الذي يحتوي على أيقونة المعلومات
+     * ملاحظة: هذه الدالة لن تعمل بدون setSupportActionBar()!
+     * لهذا السبب كانت الأيقونة لا تظهر في الإصدار السابق
      */
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -167,14 +206,14 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
     }
 
     /**
-     * ★★★ دالة جديدة: تحديث Menu حسب Fragment الحالي ★★★
+     * تحديث Menu حسب Fragment الحالي
      * 
-     * هذه الدالة تُستدعى في حالتين:
-     * 1. بعد onCreateOptionsMenu مباشرة
+     * تُستدعى هذه الدالة في حالتين:
+     * 1. تلقائياً بعد onCreateOptionsMenu()
      * 2. عندما نستدعي invalidateOptionsMenu() بأنفسنا
      * 
-     * الفكرة: نتحقق من Fragment الحالي، إذا كان FontViewerFragment نُظهر الأيقونة
-     * وإلا نخفيها. بهذه الطريقة الأيقونة ديناميكية وتظهر فقط عند الحاجة.
+     * الفكرة: نُظهر أيقونة المعلومات فقط في شاشة FontViewer
+     * وننخفيها في باقي الشاشات لتجنب الارتباك
      */
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
@@ -189,15 +228,11 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
     }
 
     /**
-     * ★★★ دالة جديدة: معالجة الضغط على menu items ★★★
+     * معالجة الضغط على menu items
      * 
-     * عندما يضغط المستخدم على أيقونة المعلومات، نتحقق أولاً أننا في
-     * FontViewerFragment، ثم نطلب منه عرض معلومات الخط.
-     * 
-     * هذه الطريقة آمنة لأننا نتحقق من كل شيء قبل الاستدعاء:
-     * 1. هل الـ Fragment موجود؟
-     * 2. هل هو من النوع الصحيح؟
-     * 3. هل الدالة موجودة؟
+     * عندما يضغط المستخدم على أيقونة المعلومات:
+     * 1. نتحقق أننا في FontViewerFragment (للأمان المضاعف)
+     * 2. نطلب من Fragment عرض معلومات الخط
      */
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
@@ -310,4 +345,4 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
             updateDrawerTitle(position);
         }
     }
-                                     }
+        }
