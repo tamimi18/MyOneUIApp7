@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    ملف تعريف الإعدادات (Preferences)
+    النسخة المحدثة: قسم General بعد Notifications
+-->
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         قسم "Appearance" - المظهر (أولاً)
+         ═══════════════════════════════════════════════════════════════ -->
+    <PreferenceCategory
+        android:title="@string/settings_appearance">
+
+        <ListPreference
+            android:key="language_mode"
+            android:title="@string/settings_language"
+            android:entries="@array/settings_language_entries"
+            android:entryValues="@array/settings_language_values"
+            android:defaultValue="0"
+            app:useSimpleSummaryProvider="true" />
+
+        <ListPreference
+            android:key="theme_mode"
+            android:title="@string/settings_theme"
+            android:entries="@array/settings_theme_entries"
+            android:entryValues="@array/settings_theme_values"
+            android:defaultValue="0"
+            app:useSimpleSummaryProvider="true" />
+
+        <ListPreference
+            android:key="font_mode"
+            android:title="@string/settings_font"
+            android:entries="@array/settings_font_entries"
+            android:entryValues="@array/settings_font_values"
+            android:defaultValue="0"
+            app:useSimpleSummaryProvider="true" />
+
+    </PreferenceCategory>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         قسم "Notifications" - الإشعارات (ثانياً)
+         ═══════════════════════════════════════════════════════════════ -->
+    <PreferenceCategory
+        android:title="@string/settings_notifications_section">
+
+        <SwitchPreferenceCompat
+            android:key="notifications_enabled"
+            android:title="@string/settings_notifications"
+            android:summary="@string/settings_notifications_description"
+            android:defaultValue="true" />
+
+    </PreferenceCategory>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         ★★★ قسم "General" - عام (أخيراً) ★★★
+         ═══════════════════════════════════════════════════════════════ -->
+    <PreferenceCategory
+        android:title="@string/settings_general">
+
+        <EditTextPreference
+            android:key="preview_text"
+            android:title="@string/settings_preview_text"
+            android:summary="@string/settings_preview_text_summary"
+            android:defaultValue="@string/settings_preview_text_default"
+            android:dialogTitle="@string/settings_preview_text_dialog_title"
+            android:dialogMessage="@string/settings_preview_text_dialog_message"
+            app:useSimpleSummaryProvider="true" />
+
+    </PreferenceCategory>
+
+</PreferenceScreen>
