@@ -1,9 +1,12 @@
+// ═══════════════════════════════════════════════════════════════════════
+// ملف 1: MainActivity.java
+// ═══════════════════════════════════════════════════════════════════════
+
 package com.example.oneuiapp;
 
 import android.content.Context;
 import android.os.Build;
 import android.os.Bundle;
-import android.view.View;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
@@ -15,41 +18,20 @@ import java.util.List;
 import dev.oneuiproject.oneui.layout.DrawerLayout;
 
 /**
- * MainActivity - الحل الصحيح والنهائي
+ * MainActivity - الحل النهائي والصحيح
  * 
- * ═══════════════════════════════════════════════════════════════════════
- * فهم المشكلة الأساسية
- * ═══════════════════════════════════════════════════════════════════════
+ * بعد دراسة sample-app بعمق، اتضح أن:
  * 
- * في البداية، حاولنا استخدام نظام Menu القياسي في Android عبر:
- * - onCreateOptionsMenu()
- * - onPrepareOptionsMenu()
- * - onOptionsItemSelected()
+ * 1. DrawerLayout لا يوفر دالة setDrawerButtonVisibility()
+ * 2. الطريقة الوحيدة للتحكم بالزر هي عبر تغيير الأيقونة (null = مخفي)
+ * 3. لكن هذا معقد ويحتاج منطق إضافي
  * 
- * لكن هذا لم يعمل لسببين:
+ * الحل الأبسط والأفضل:
+ * --------------------
+ * نترك MainActivity بسيطة، ونضع منطق الزر بالكامل في FontViewerFragment.
+ * هكذا يدير كل Fragment أزراره الخاصة، وهذا أكثر تنظيماً وأقرب لمبادئ Android.
  * 
- * 1. DrawerLayout من OneUI Design يُدير Toolbar بشكل داخلي
- *    وعندما حاولنا ربطه بـ setSupportActionBar()، تعارض
- *    هذا مع آلية عمل DrawerLayout وتسبب في تعطل زر الدرج
- * 
- * 2. في sample-app الرسمي، عندما يحتاجون لإضافة أزرار إضافية
- *    في Toolbar، يستخدمون طريقة مختلفة تماماً:
- *    - في AboutActivity: يستخدمون setDrawerButtonIcon()
- *    - في MainActivity: لا يضيفون أي أزرار إضافية أصلاً!
- * 
- * ═══════════════════════════════════════════════════════════════════════
- * الحل الصحيح (مستوحى من sample-app)
- * ═══════════════════════════════════════════════════════════════════════
- * 
- * DrawerLayout يوفر API خاص لإضافة زر إضافي في الجهة المقابلة لزر الدرج:
- * 
- * - setDrawerButtonIcon(): لتعيين أيقونة الزر
- * - setDrawerButtonTooltip(): لتعيين نص توضيحي عند الضغط المطول
- * - setDrawerButtonOnClickListener(): لتعيين حدث الضغط
- * - setDrawerButtonVisibility(): لإظهار/إخفاء الزر
- * 
- * هذه هي الطريقة الصحيحة للعمل مع DrawerLayout!
- * ولن تتعارض مع آلية عمل الدرج الداخلية
+ * MainActivity الآن تعود لحالتها الأصلية البسيطة!
  */
 public class MainActivity extends BaseActivity implements FontViewerFragment.OnFontChangedListener {
 
@@ -63,7 +45,6 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
     private static final String TAG_HOME = "fragment_home";
     private static final String TAG_FONT_VIEWER = "fragment_font_viewer";
     
-    // متغيرات لحفظ معلومات الخط الحالي
     private String currentFontRealName;
     private String currentFontFileName;
 
@@ -102,9 +83,6 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
         
         setupDrawer();
         updateDrawerTitle(mCurrentFragmentIndex);
-        
-        // ★★★ إعداد زر المعلومات - هذا هو الحل الصحيح! ★★★
-        setupInfoButton();
     }
 
     private void initViews() {
@@ -145,10 +123,6 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
                         mCurrentFragmentIndex = position;
                         showFragmentFast(position);
                         updateDrawerTitle(position);
-                        
-                        // ★★★ تحديث رؤية زر المعلومات عند تغيير Fragment ★★★
-                        updateInfoButtonVisibility();
-                        
                         return true;
                     }
                     return false;
@@ -156,140 +130,6 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
         
         mDrawerListView.setAdapter(mDrawerAdapter);
         mDrawerAdapter.setSelectedItem(mCurrentFragmentIndex);
-    }
-
-    /**
-     * ★★★ إعداد زر المعلومات - الطريقة الصحيحة ★★★
-     * 
-     * هذه الدالة تستخدم API الخاص بـ DrawerLayout لإضافة زر إضافي
-     * في الجهة المقابلة لزر فتح الدرج.
-     * 
-     * كيف تعمل؟
-     * ----------
-     * DrawerLayout يحتوي على "مكان مخصص" لزر إضافي واحد. هذا الزر:
-     * - يظهر في الزاوية (يمين في LTR، يسار في RTL)
-     * - لا يتعارض مع زر الدرج أبداً
-     * - يمكن إظهاره/إخفاؤه بسهولة
-     * - يمكن تغيير أيقونته وحدث الضغط عليه
-     * 
-     * هذا بالضبط ما نحتاجه!
-     * 
-     * الفرق بين هذه الطريقة و setSupportActionBar():
-     * ------------------------------------------------
-     * setSupportActionBar() يحاول "السيطرة" على Toolbar بالكامل
-     * بينما setDrawerButton...() يعمل "بتناغم" مع DrawerLayout
-     * 
-     * مثال من sample-app:
-     * --------------------
-     * في AboutActivity.java (السطر 76-80 تقريباً):
-     * 
-     * mBinding.aboutDrawerLayout.setDrawerButtonIcon(
-     *     getDrawable(R.drawable.ic_oui_info_outline));
-     * mBinding.aboutDrawerLayout.setDrawerButtonTooltip("About page");
-     * mBinding.aboutDrawerLayout.setDrawerButtonOnClickListener(v -> ...);
-     * 
-     * نفس الفكرة هنا!
-     */
-    private void setupInfoButton() {
-        // الحصول على أيقونة المعلومات من مكتبة OneUI Icons
-        // نستخدم ic_oui_info_outline لأنها تتماشى مع تصميم OneUI
-        try {
-            // محاولة الحصول على الأيقونة من OneUI Icons
-            Class<?> ouiDrawable = Class.forName("dev.oneuiproject.oneui.R$drawable");
-            java.lang.reflect.Field iconField = ouiDrawable.getField("ic_oui_info_outline");
-            int iconResId = iconField.getInt(null);
-            
-            android.graphics.drawable.Drawable infoIcon = getDrawable(iconResId);
-            
-            // تعيين أيقونة الزر
-            mDrawerLayout.setDrawerButtonIcon(infoIcon);
-            
-            // تعيين نص توضيحي (يظهر عند الضغط المطول)
-            mDrawerLayout.setDrawerButtonTooltip(getString(R.string.menu_font_info));
-            
-            // تعيين حدث الضغط
-            mDrawerLayout.setDrawerButtonOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    onInfoButtonClicked();
-                }
-            });
-            
-            // إخفاء الزر افتراضياً (سنُظهره فقط في شاشة FontViewer)
-            mDrawerLayout.setDrawerButtonVisibility(View.GONE);
-            
-        } catch (Exception e) {
-            // في حالة فشل الحصول على الأيقونة من OneUI Icons
-            // نستخدم أيقونة النظام البديلة
-            android.util.Log.e("MainActivity", "Failed to get OneUI icon, using fallback", e);
-            
-            // استخدام أيقونة info من Android
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                android.graphics.drawable.Drawable fallbackIcon = 
-                    getDrawable(android.R.drawable.ic_menu_info_details);
-                
-                if (fallbackIcon != null) {
-                    mDrawerLayout.setDrawerButtonIcon(fallbackIcon);
-                    mDrawerLayout.setDrawerButtonTooltip(getString(R.string.menu_font_info));
-                    mDrawerLayout.setDrawerButtonOnClickListener(v -> onInfoButtonClicked());
-                    mDrawerLayout.setDrawerButtonVisibility(View.GONE);
-                }
-            }
-        }
-    }
-
-    /**
-     * ★★★ تحديث رؤية زر المعلومات ★★★
-     * 
-     * هذه الدالة تُستدعى في حالتين:
-     * 1. عند تغيير Fragment (من setupDrawer)
-     * 2. يمكن استدعاؤها يدوياً عند الحاجة
-     * 
-     * القاعدة بسيطة:
-     * - إذا كنا في FontViewerFragment (index = 2): أظهر الزر
-     * - في أي شاشة أخرى: أخفِ الزر
-     */
-    private void updateInfoButtonVisibility() {
-        if (mDrawerLayout == null) {
-            return;
-        }
-        
-        // إظهار الزر فقط في شاشة FontViewer (index = 2)
-        if (mCurrentFragmentIndex == 2) {
-            mDrawerLayout.setDrawerButtonVisibility(View.VISIBLE);
-        } else {
-            mDrawerLayout.setDrawerButtonVisibility(View.GONE);
-        }
-    }
-
-    /**
-     * ★★★ معالجة الضغط على زر المعلومات ★★★
-     * 
-     * عندما يضغط المستخدم على زر المعلومات:
-     * 1. نتحقق أننا فعلاً في FontViewerFragment (للأمان المضاعف)
-     * 2. نتحقق أن Fragment من النوع الصحيح
-     * 3. نطلب من Fragment عرض معلومات الخط
-     * 
-     * التحققات الإضافية مهمة لتجنب الأخطاء في حالات غير متوقعة
-     * (مثل لو تم تغيير Fragment بسرعة جداً أثناء الضغط)
-     */
-    private void onInfoButtonClicked() {
-        // التحقق من أننا في شاشة FontViewer
-        if (mCurrentFragmentIndex != 2 || mFragments.size() <= 2) {
-            return;
-        }
-        
-        Fragment currentFragment = mFragments.get(2);
-        
-        // التحقق من أن Fragment من النوع الصحيح
-        if (!(currentFragment instanceof FontViewerFragment)) {
-            return;
-        }
-        
-        FontViewerFragment fontViewerFragment = (FontViewerFragment) currentFragment;
-        
-        // استدعاء دالة عرض معلومات الخط
-        fontViewerFragment.showFontMetadata();
     }
 
     private void showFragmentFast(int position) {
@@ -315,9 +155,6 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
         transaction.commitNow();
     }
 
-    /**
-     * تحديث عنوان الدرج بناءً على Fragment المعروض
-     */
     private void updateDrawerTitle(int fragmentIndex) {
         if (mDrawerLayout == null) {
             return;
@@ -327,17 +164,14 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
         String subtitle;
         
         if (fragmentIndex == 0) {
-            // الشاشة الرئيسية (HomeFragment)
             title = getString(R.string.app_name);
             subtitle = getString(R.string.app_subtitle);
             
         } else if (fragmentIndex == 1) {
-            // شاشة الإعدادات (SettingsFragment)
             title = getString(R.string.title_settings);
             subtitle = getString(R.string.settings_subtitle);
             
         } else if (fragmentIndex == 2) {
-            // شاشة عارض الخطوط (FontViewerFragment)
             FontViewerFragment fontFragment = (FontViewerFragment) mFragments.get(2);
             
             if (fontFragment != null && fontFragment.hasFontSelected()) {
@@ -363,9 +197,6 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
         mDrawerLayout.setExpandedSubtitle(subtitle);
     }
 
-    /**
-     * Callbacks من FontViewerFragment
-     */
     @Override
     public void onFontChanged(String fontRealName, String fontFileName) {
         this.currentFontRealName = fontRealName;
@@ -406,7 +237,150 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
             mCurrentFragmentIndex = position;
             mDrawerAdapter.setSelectedItem(position);
             updateDrawerTitle(position);
-            updateInfoButtonVisibility();
         }
     }
+    
+    /**
+     * دالة مساعدة للحصول على DrawerLayout
+     * FontViewerFragment سيستخدمها لإضافة الزر
+     */
+    public DrawerLayout getDrawerLayout() {
+        return mDrawerLayout;
+    }
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════
+// ملف 2: FontViewerFragment.java - الجزء المُعدّل فقط
+// ═══════════════════════════════════════════════════════════════════════
+// 
+// أضف هذه الدوال في نهاية الكلاس، قبل القوس الأخير }
+// ═══════════════════════════════════════════════════════════════════════
+
+    /**
+     * ★★★ إعداد زر المعلومات في Toolbar ★★★
+     * 
+     * هذه الدالة تُستدعى عندما يصبح Fragment مرئياً (onResume)
+     * وتضيف زر المعلومات إلى DrawerLayout الخاص بـ MainActivity
+     * 
+     * لماذا في onResume وليس onCreate؟
+     * -----------------------------------
+     * لأن في onCreate قد لا يكون Activity جاهزة بعد،
+     * أما في onResume فكل شيء جاهز ومؤكد أن Fragment مرئي للمستخدم
+     * 
+     * كيف يعمل؟
+     * ----------
+     * 1. نحصل على DrawerLayout من MainActivity
+     * 2. نضيف أيقونة المعلومات كـ DrawerButton
+     * 3. نربط حدث الضغط بدالة showFontMetadata()
+     */
+    private void setupInfoButton() {
+        // الحصول على MainActivity
+        if (!(getActivity() instanceof MainActivity)) {
+            return;
         }
+        
+        MainActivity mainActivity = (MainActivity) getActivity();
+        dev.oneuiproject.oneui.layout.DrawerLayout drawerLayout = mainActivity.getDrawerLayout();
+        
+        if (drawerLayout == null) {
+            return;
+        }
+        
+        try {
+            // الحصول على أيقونة المعلومات من OneUI Icons
+            Class<?> ouiDrawable = Class.forName("dev.oneuiproject.oneui.R$drawable");
+            java.lang.reflect.Field iconField = ouiDrawable.getField("ic_oui_info_outline");
+            int iconResId = iconField.getInt(null);
+            
+            android.graphics.drawable.Drawable infoIcon = requireContext().getDrawable(iconResId);
+            
+            // إضافة الزر إلى DrawerLayout
+            drawerLayout.setDrawerButtonIcon(infoIcon);
+            drawerLayout.setDrawerButtonTooltip(getString(R.string.menu_font_info));
+            drawerLayout.setDrawerButtonOnClickListener(v -> showFontMetadata());
+            
+        } catch (Exception e) {
+            android.util.Log.e("FontViewerFragment", "Failed to setup info button", e);
+            
+            // محاولة استخدام أيقونة بديلة من Android
+            try {
+                android.graphics.drawable.Drawable fallbackIcon = 
+                    requireContext().getDrawable(android.R.drawable.ic_menu_info_details);
+                
+                if (fallbackIcon != null) {
+                    drawerLayout.setDrawerButtonIcon(fallbackIcon);
+                    drawerLayout.setDrawerButtonTooltip(getString(R.string.menu_font_info));
+                    drawerLayout.setDrawerButtonOnClickListener(v -> showFontMetadata());
+                }
+            } catch (Exception ex) {
+                // تجاهل إذا فشل كل شيء
+            }
+        }
+    }
+
+    /**
+     * ★★★ إزالة زر المعلومات من Toolbar ★★★
+     * 
+     * هذه الدالة تُستدعى عندما يختفي Fragment (onPause)
+     * وتزيل زر المعلومات من DrawerLayout
+     * 
+     * لماذا نزيله؟
+     * -------------
+     * لأننا لا نريد الزر يظهر في الشاشات الأخرى
+     * عندما يضيف الزر، يبقى موجوداً حتى نزيله يدوياً
+     * 
+     * كيف نزيله؟
+     * ----------
+     * نمرر null كأيقونة، هذا يخفي الزر تماماً
+     */
+    private void removeInfoButton() {
+        if (!(getActivity() instanceof MainActivity)) {
+            return;
+        }
+        
+        MainActivity mainActivity = (MainActivity) getActivity();
+        dev.oneuiproject.oneui.layout.DrawerLayout drawerLayout = mainActivity.getDrawerLayout();
+        
+        if (drawerLayout == null) {
+            return;
+        }
+        
+        // إزالة الزر عن طريق تمرير null
+        drawerLayout.setDrawerButtonIcon(null);
+        drawerLayout.setDrawerButtonOnClickListener(null);
+    }
+
+    // ★★★ تعديل دالة onResume الموجودة ★★★
+    // استبدل دالة onResume بهذه النسخة المُعدّلة
+    @Override
+    public void onResume() {
+        super.onResume();
+
+        sharedPreferences = PreferenceManager.getDefaultSharedPreferences(requireContext());
+        sharedPreferences.registerOnSharedPreferenceChangeListener(this);
+
+        String currentPreviewText = SettingsHelper.getPreviewText(requireContext());
+
+        if (!currentPreviewText.equals(lastPreviewText)) {
+            lastPreviewText = currentPreviewText;
+            updatePreviewTexts();
+        }
+        
+        // ★★★ إضافة جديدة: إعداد زر المعلومات ★★★
+        setupInfoButton();
+    }
+
+    // ★★★ تعديل دالة onPause الموجودة ★★★
+    // استبدل دالة onPause بهذه النسخة المُعدّلة
+    @Override
+    public void onPause() {
+        super.onPause();
+        
+        if (sharedPreferences != null) {
+            sharedPreferences.unregisterOnSharedPreferenceChangeListener(this);
+        }
+        
+        // ★★★ إضافة جديدة: إزالة زر المعلومات ★★★
+        removeInfoButton();
+}
