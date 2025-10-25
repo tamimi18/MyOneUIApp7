@@ -7,6 +7,7 @@ import android.content.SharedPreferences;
 import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Bundle;
+import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -33,11 +34,6 @@ import java.util.Map;
 
 /**
  * FontViewerFragment - عارض الخطوط مع استخراج Metadata
- * 
- * التحديثات الجديدة:
- * 1. إضافة دالة showFontMetadata() لعرض معلومات الخط
- * 2. إضافة دالة extractFontMetadata() لاستخراج جميع البيانات من جدول name
- * 3. إضافة Dialog بتصميم One UI لعرض المعلومات بشكل جميل
  */
 public class FontViewerFragment extends Fragment implements SharedPreferences.OnSharedPreferenceChangeListener {
 
@@ -143,10 +139,16 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
             lastPreviewText = currentPreviewText;
             updatePreviewTexts();
         }
+
+        // إعداد زر المعلومات في شريط Drawer (إن وُجد)
+        setupInfoButton();
     }
 
     @Override
     public void onPause() {
+        // إزالة زر المعلومات أولاً حتى لا يبقى في Activity الأخرى
+        removeInfoButton();
+
         super.onPause();
         if (sharedPreferences != null) {
             sharedPreferences.unregisterOnSharedPreferenceChangeListener(this);
@@ -163,18 +165,9 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
     }
 
     /**
-     * ★★★ دالة جديدة: عرض معلومات الخط في Dialog ★★★
-     * 
-     * هذه الدالة تُستدعى من MainActivity عندما يضغط المستخدم على أيقونة المعلومات
-     * 
-     * الخطوات:
-     * 1. التحقق من وجود خط محدد
-     * 2. استخراج جميع المعلومات من ملف الخط
-     * 3. إنشاء Dialog بتصميم One UI جميل
-     * 4. عرض المعلومات بشكل منظم وسهل القراءة
+     * عرض معلومات الخط في Dialog
      */
     public void showFontMetadata() {
-        // التحقق من وجود خط محدد
         if (currentFontPath == null || currentFontPath.isEmpty()) {
             Toast.makeText(requireContext(),
                 getString(R.string.font_metadata_no_font),
@@ -182,7 +175,6 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
             return;
         }
 
-        // استخراج المعلومات من ملف الخط
         Map<String, String> metadata = extractFontMetadata(new File(currentFontPath));
 
         if (metadata == null || metadata.isEmpty()) {
@@ -192,41 +184,16 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
             return;
         }
 
-        // إنشاء Dialog بتصميم One UI
         createMetadataDialog(metadata);
     }
 
     /**
-     * ★★★ دالة جديدة: استخراج Metadata من ملف الخط ★★★
-     * 
-     * هذه الدالة تقرأ جدول "name" من ملف TTF/OTF وتستخرج جميع المعلومات المتاحة
-     * 
-     * كيف تعمل ملفات الخطوط؟
-     * ملفات TTF/OTF مبنية على نظام "الجداول" (Tables). كل جدول يحتوي على معلومات
-     * معينة. الجدول الذي يهمنا هنا هو جدول "name" الذي يحتوي على:
-     * - اسم الخط
-     * - المصمم
-     * - حقوق النشر
-     * - الترخيص
-     * - وغيرها من المعلومات النصية
-     * 
-     * بنية جدول name:
-     * يحتوي على "سجلات" (name records)، كل سجل له:
-     * - nameID: رقم يحدد نوع المعلومة (1=Family, 2=Subfamily, 5=Version, إلخ)
-     * - platformID: نظام التشغيل (3=Windows, 1=Mac)
-     * - encodingID: نوع التشفير
-     * - languageID: اللغة
-     * - length: طول النص
-     * - offset: موقع النص في الملف
-     * 
-     * @param fontFile ملف الخط
-     * @return Map يحتوي على المعلومات (key=نوع المعلومة, value=القيمة)
+     * استخراج Metadata من ملف TTF/OTF (جدول "name")
      */
     private Map<String, String> extractFontMetadata(File fontFile) {
         Map<String, String> metadata = new LinkedHashMap<>();
 
         try (RandomAccessFile raf = new RandomAccessFile(fontFile, "r")) {
-            // التحقق من أن الملف هو TTF أو OTF صحيح
             raf.seek(0);
             int sfntVersion = raf.readInt();
 
@@ -234,17 +201,15 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
                 return null;
             }
 
-            // قراءة عدد الجداول والبحث عن جدول "name"
             int numTables = raf.readUnsignedShort();
             raf.skipBytes(6); // تخطي searchRange, entrySelector, rangeShift
 
             long nameTableOffset = -1;
 
-            // البحث في جميع الجداول حتى نجد جدول "name"
             for (int i = 0; i < numTables; i++) {
                 byte[] tag = new byte[4];
                 raf.read(tag);
-                String tagName = new String(tag);
+                String tagName = new String(tag, "US-ASCII");
 
                 raf.skipBytes(4); // checksum
                 long offset = readUInt32(raf);
@@ -260,13 +225,11 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
                 return null;
             }
 
-            // قراءة محتويات جدول "name"
             raf.seek(nameTableOffset);
             raf.readUnsignedShort(); // format
             int count = raf.readUnsignedShort(); // عدد السجلات
             int stringOffset = raf.readUnsignedShort(); // موقع النصوص
 
-            // قراءة جميع السجلات واستخراج المعلومات
             for (int i = 0; i < count; i++) {
                 int platformID = raf.readUnsignedShort();
                 int encodingID = raf.readUnsignedShort();
@@ -275,8 +238,6 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
                 int length = raf.readUnsignedShort();
                 int offset = raf.readUnsignedShort();
 
-                // نحن نريد فقط السجلات من Windows (platformID=3) أو Mac (platformID=1)
-                // ونريد اللغة الإنجليزية (languageID=0x0409 for Windows, 0 for Mac)
                 boolean isWindowsEnglish = (platformID == 3 && languageID == 0x0409);
                 boolean isMacEnglish = (platformID == 1 && languageID == 0);
 
@@ -284,35 +245,26 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
                     continue;
                 }
 
-                // حفظ الموقع الحالي في الملف
                 long currentPos = raf.getFilePointer();
-                
-                // الانتقال لموقع النص وقراءته
+
                 raf.seek(nameTableOffset + stringOffset + offset);
                 byte[] nameBytes = new byte[length];
                 raf.read(nameBytes);
 
-                // تحويل البايتات إلى نص حسب نوع التشفير
                 String value;
                 if (platformID == 3) {
-                    // Windows: UTF-16 Big Endian
                     value = new String(nameBytes, "UTF-16BE").trim();
                 } else {
-                    // Mac: ASCII أو MacRoman
                     value = new String(nameBytes, "US-ASCII").trim();
                 }
 
-                // حفظ المعلومة حسب nameID
-                // نستخدم الأسماء الإنجليزية كـ keys لأنها ثابتة
                 String key = getNameIDLabel(nameID);
                 if (key != null && !value.isEmpty()) {
-                    // نحفظ فقط إذا لم تكن موجودة بالفعل (أولوية لـ Windows)
                     if (!metadata.containsKey(key)) {
                         metadata.put(key, value);
                     }
                 }
 
-                // العودة للموقع السابق لقراءة السجل التالي
                 raf.seek(currentPos);
             }
 
@@ -324,11 +276,6 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
         }
     }
 
-    /**
-     * دالة مساعدة: تحويل nameID إلى اسم مفهوم
-     * 
-     * كل رقم nameID له معنى محدد حسب مواصفات OpenType:
-     */
     private String getNameIDLabel(int nameID) {
         switch (nameID) {
             case 0: return "Copyright";
@@ -353,94 +300,89 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
             case 20: return "PostScript CID";
             case 21: return "WWS Family";
             case 22: return "WWS Subfamily";
-            default: return null; // تجاهل الأنواع غير المعروفة
+            default: return null;
         }
     }
 
-    /**
-     * ★★★ دالة جديدة: إنشاء Dialog لعرض المعلومات ★★★
-     * 
-     * هذه الدالة تنشئ Dialog جميل بتصميم One UI يعرض جميع معلومات الخط
-     * بشكل منظم ومنسق
-     */
     private void createMetadataDialog(Map<String, String> metadata) {
-        // إنشاء ScrollView لعرض المعلومات (قد تكون طويلة)
         ScrollView scrollView = new ScrollView(requireContext());
         LinearLayout layout = new LinearLayout(requireContext());
         layout.setOrientation(LinearLayout.VERTICAL);
-        
-        // padding مناسب لتصميم One UI
+
         int padding = (int) (16 * getResources().getDisplayMetrics().density);
         layout.setPadding(padding, padding / 2, padding, padding / 2);
 
-        // إضافة كل معلومة كـ TextView منفصل
         for (Map.Entry<String, String> entry : metadata.entrySet()) {
             String key = entry.getKey();
             String value = entry.getValue();
 
-            // تخطي المعلومات الفارغة أو غير المفيدة
             if (value == null || value.isEmpty() || value.equals("Unknown")) {
                 continue;
             }
 
-            // إنشاء View لكل معلومة
             addMetadataItem(layout, key, value);
         }
 
         scrollView.addView(layout);
 
-        // إنشاء AlertDialog بأسلوب One UI
         AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
         builder.setTitle(getString(R.string.font_metadata_title));
         builder.setView(scrollView);
         builder.setPositiveButton(getString(R.string.font_metadata_close), null);
-        
+
         AlertDialog dialog = builder.create();
         dialog.show();
     }
 
-    /**
-     * دالة مساعدة: إضافة عنصر معلومة واحد إلى Layout
-     */
     private void addMetadataItem(LinearLayout parent, String key, String value) {
         Context context = requireContext();
-        
-        // TextView للعنوان (مثل "Font Family:")
+
+        // استرجاع ألوان النص من السمات بشكل آمن
+        TypedValue tv = new TypedValue();
+        int colorSecondary;
+        int colorPrimary;
+        if (context.getTheme().resolveAttribute(android.R.attr.textColorSecondary, tv, true)) {
+            colorSecondary = tv.data;
+        } else {
+            colorSecondary = 0xFF757575; // fallback gray
+        }
+        if (context.getTheme().resolveAttribute(android.R.attr.textColorPrimary, tv, true)) {
+            colorPrimary = tv.data;
+        } else {
+            colorPrimary = 0xFF212121; // fallback dark
+        }
+
         TextView titleView = new TextView(context);
         titleView.setText(getLocalizedLabel(key));
         titleView.setTextSize(14);
-        titleView.setTextColor(context.getColor(android.R.attr.textColorSecondary));
+        titleView.setTextColor(colorSecondary);
         titleView.setTypeface(null, android.graphics.Typeface.BOLD);
-        
+
         LinearLayout.LayoutParams titleParams = new LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
             LinearLayout.LayoutParams.WRAP_CONTENT
         );
         titleParams.topMargin = (int) (12 * getResources().getDisplayMetrics().density);
         titleView.setLayoutParams(titleParams);
-        
+
         parent.addView(titleView);
 
-        // TextView للقيمة (مثل "Roboto")
         TextView valueView = new TextView(context);
         valueView.setText(value);
         valueView.setTextSize(16);
-        valueView.setTextColor(context.getColor(android.R.attr.textColorPrimary));
-        valueView.setTextIsSelectable(true); // للسماح بنسخ النص
-        
+        valueView.setTextColor(colorPrimary);
+        valueView.setTextIsSelectable(true);
+
         LinearLayout.LayoutParams valueParams = new LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
             LinearLayout.LayoutParams.WRAP_CONTENT
         );
         valueParams.topMargin = (int) (4 * getResources().getDisplayMetrics().density);
         valueView.setLayoutParams(valueParams);
-        
+
         parent.addView(valueView);
     }
 
-    /**
-     * دالة مساعدة: الحصول على التسمية المترجمة للغة الحالية
-     */
     private String getLocalizedLabel(String key) {
         switch (key) {
             case "Family":
@@ -563,7 +505,7 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
             for (int i = 0; i < numTables; i++) {
                 byte[] tag = new byte[4];
                 raf.read(tag);
-                String tagName = new String(tag);
+                String tagName = new String(tag, "US-ASCII");
 
                 raf.skipBytes(4);
                 long offset = readUInt32(raf);
@@ -770,4 +712,67 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
     public boolean hasFontSelected() {
         return currentFontPath != null && !currentFontPath.isEmpty();
     }
+
+    /**
+     * إعداد زر المعلومات في Toolbar (DrawerLayout) — يُضاف عند ظهور الـ Fragment
+     */
+    private void setupInfoButton() {
+        if (!(getActivity() instanceof MainActivity)) {
+            return;
+        }
+
+        MainActivity mainActivity = (MainActivity) getActivity();
+        dev.oneuiproject.oneui.layout.DrawerLayout drawerLayout = mainActivity.getDrawerLayout();
+
+        if (drawerLayout == null) {
+            return;
+        }
+
+        try {
+            Class<?> ouiDrawable = Class.forName("dev.oneuiproject.oneui.R$drawable");
+            java.lang.reflect.Field iconField = ouiDrawable.getField("ic_oui_info_outline");
+            int iconResId = iconField.getInt(null);
+
+            android.graphics.drawable.Drawable infoIcon = requireContext().getDrawable(iconResId);
+
+            drawerLayout.setDrawerButtonIcon(infoIcon);
+            drawerLayout.setDrawerButtonTooltip(getString(R.string.menu_font_info));
+            drawerLayout.setDrawerButtonOnClickListener(v -> showFontMetadata());
+
+        } catch (Exception e) {
+            android.util.Log.e("FontViewerFragment", "Failed to setup info button", e);
+
+            try {
+                android.graphics.drawable.Drawable fallbackIcon =
+                    requireContext().getDrawable(android.R.drawable.ic_menu_info_details);
+
+                if (fallbackIcon != null) {
+                    drawerLayout.setDrawerButtonIcon(fallbackIcon);
+                    drawerLayout.setDrawerButtonTooltip(getString(R.string.menu_font_info));
+                    drawerLayout.setDrawerButtonOnClickListener(v -> showFontMetadata());
                 }
+            } catch (Exception ex) {
+                // تجاهل إذا فشل كل شيء
+            }
+        }
+    }
+
+    /**
+     * إزالة زر المعلومات من Toolbar (DrawerLayout) — يُستدعى عند اختفاء الـ Fragment
+     */
+    private void removeInfoButton() {
+        if (!(getActivity() instanceof MainActivity)) {
+            return;
+        }
+
+        MainActivity mainActivity = (MainActivity) getActivity();
+        dev.oneuiproject.oneui.layout.DrawerLayout drawerLayout = mainActivity.getDrawerLayout();
+
+        if (drawerLayout == null) {
+            return;
+        }
+
+        drawerLayout.setDrawerButtonIcon(null);
+        drawerLayout.setDrawerButtonOnClickListener(null);
+    }
+                    }
