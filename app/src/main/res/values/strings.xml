@@ -103,5 +103,51 @@
     <string name="font_viewer_adjust_size">Adjust font size</string>
     <string name="font_viewer_import_font">Import font</string>
     <string name="font_viewer_toggle_bold">Toggle bold</string>
+    
+<!--  الإضافات الجديدة لملف strings.xml
+    
+    أضف هذه النصوص إلى ملف strings.xml الموجود
+    (لا تستبدل الملف بأكمله، فقط أضف هذه النصوص في النهاية)-->
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         نصوص Menu (جديدة)
+         ═══════════════════════════════════════════════════════════════ -->
+    
+    <!-- نص أيقونة معلومات الخط في Menu -->
+    <string name="menu_font_info">Font Information</string>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         نصوص Dialog معلومات الخط (جديدة)
+         ═══════════════════════════════════════════════════════════════ -->
+    
+    <!-- عنوان Dialog -->
+    <string name="font_metadata_title">Font Information</string>
+    
+    <!-- زر الإغلاق -->
+    <string name="font_metadata_close">Close</string>
+    
+    <!-- عناوين الحقول -->
+    <string name="font_metadata_family">Font Family</string>
+    <string name="font_metadata_subfamily">Subfamily</string>
+    <string name="font_metadata_full_name">Full Name</string>
+    <string name="font_metadata_version">Version</string>
+    <string name="font_metadata_postscript">PostScript Name</string>
+    <string name="font_metadata_copyright">Copyright</string>
+    <string name="font_metadata_trademark">Trademark</string>
+    <string name="font_metadata_manufacturer">Manufacturer</string>
+    <string name="font_metadata_designer">Designer</string>
+    <string name="font_metadata_description">Description</string>
+    <string name="font_metadata_vendor_url">Vendor URL</string>
+    <string name="font_metadata_designer_url">Designer URL</string>
+    <string name="font_metadata_license">License</string>
+    <string name="font_metadata_license_url">License URL</string>
+    
+    <!-- رسائل الخطأ -->
+    <string name="font_metadata_no_font">No font selected</string>
+    <string name="font_metadata_error">Error reading font information</string>
+    
+    <!-- قيم افتراضية عندما لا تكون المعلومة متوفرة -->
+    <string name="font_metadata_not_available">Not available</string>
+    <string name="font_metadata_unknown">Unknown</string>
 
 </resources>
