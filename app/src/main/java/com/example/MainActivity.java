@@ -13,22 +13,6 @@ import java.util.ArrayList;
 import java.util.List;
 import dev.oneuiproject.oneui.layout.DrawerLayout;
 
-/**
- * MainActivity - الحل النهائي والصحيح
- * 
- * بعد دراسة sample-app بعمق، اتضح أن:
- * 
- * 1. DrawerLayout لا يوفر دالة setDrawerButtonVisibility()
- * 2. الطريقة الوحيدة للتحكم بالزر هي عبر تغيير الأيقونة (null = مخفي)
- * 3. لكن هذا معقد ويحتاج منطق إضافي
- * 
- * الحل الأبسط والأفضل:
- * --------------------
- * نترك MainActivity بسيطة، ونضع منطق الزر بالكامل في FontViewerFragment.
- * هكذا يدير كل Fragment أزراره الخاصة، وهذا أكثر تنظيماً وأقرب لمبادئ Android.
- * 
- * MainActivity الآن تعود لحالتها الأصلية البسيطة!
- */
 public class MainActivity extends BaseActivity implements FontViewerFragment.OnFontChangedListener {
 
     private DrawerLayout mDrawerLayout;
@@ -236,10 +220,6 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
         }
     }
     
-    /**
-     * دالة مساعدة للحصول على DrawerLayout
-     * FontViewerFragment سيستخدمها لإضافة الزر
-     */
     public DrawerLayout getDrawerLayout() {
         return mDrawerLayout;
     }
