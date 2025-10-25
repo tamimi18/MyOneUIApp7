@@ -13,6 +13,14 @@ import java.util.ArrayList;
 import java.util.List;
 import dev.oneuiproject.oneui.layout.DrawerLayout;
 
+/**
+ * MainActivity - النسخة المصححة مع إزالة المراجع غير المستخدمة
+ * 
+ * التحديث الجديد:
+ * - تم حذف TAG_SETTINGS لأنه لم يعد مستخدماً
+ * - تم تبسيط الكود وتنظيفه من المراجع القديمة
+ * - جميع الوظائف تعمل بشكل صحيح مع PreferenceFragmentCompat
+ */
 public class MainActivity extends BaseActivity implements FontViewerFragment.OnFontChangedListener {
 
     private DrawerLayout mDrawerLayout;
@@ -22,9 +30,16 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
     private int mCurrentFragmentIndex = 0;
     
     private static final String KEY_CURRENT_FRAGMENT = "current_fragment_index";
+    
+    // ★★★ تم حذف TAG_SETTINGS القديم لأنه لم يعد مستخدماً ★★★
     private static final String TAG_HOME = "fragment_home";
     private static final String TAG_FONT_VIEWER = "fragment_font_viewer";
+    // لاحظ: لم نعد بحاجة لـ TAG منفصل لـ SettingsFragment
+    // لأنها الآن PreferenceFragment بدون layout مخصص
     
+    /**
+     * متغيرات لحفظ معلومات الخط الحالي
+     */
     private String currentFontRealName;
     private String currentFontFileName;
 
@@ -46,7 +61,7 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
             
             FragmentManager fm = getSupportFragmentManager();
             Fragment homeFragment = fm.findFragmentByTag(TAG_HOME);
-            Fragment settingsFragment = fm.findFragmentByTag("settings");
+            Fragment settingsFragment = fm.findFragmentByTag("settings"); // اسم بسيط
             Fragment fontViewerFragment = fm.findFragmentByTag(TAG_FONT_VIEWER);
             
             if (homeFragment != null && settingsFragment != null && fontViewerFragment != null) {
@@ -82,6 +97,7 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
         FragmentManager fm = getSupportFragmentManager();
         FragmentTransaction transaction = fm.beginTransaction();
         
+        // إضافة Fragments مع tags مبسطة
         transaction.add(R.id.main_content, mFragments.get(0), TAG_HOME);
         transaction.add(R.id.main_content, mFragments.get(1), "settings");
         transaction.hide(mFragments.get(1));
@@ -135,6 +151,9 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
         transaction.commitNow();
     }
 
+    /**
+     * تحديث عنوان الدرج بناءً على Fragment المعروض
+     */
     private void updateDrawerTitle(int fragmentIndex) {
         if (mDrawerLayout == null) {
             return;
@@ -144,14 +163,17 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
         String subtitle;
         
         if (fragmentIndex == 0) {
+            // الشاشة الرئيسية (HomeFragment)
             title = getString(R.string.app_name);
             subtitle = getString(R.string.app_subtitle);
             
         } else if (fragmentIndex == 1) {
+            // شاشة الإعدادات (SettingsFragment)
             title = getString(R.string.title_settings);
             subtitle = getString(R.string.settings_subtitle);
             
         } else if (fragmentIndex == 2) {
+            // شاشة عارض الخطوط (FontViewerFragment)
             FontViewerFragment fontFragment = (FontViewerFragment) mFragments.get(2);
             
             if (fontFragment != null && fontFragment.hasFontSelected()) {
@@ -177,6 +199,9 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
         mDrawerLayout.setExpandedSubtitle(subtitle);
     }
 
+    /**
+     * Callbacks من FontViewerFragment
+     */
     @Override
     public void onFontChanged(String fontRealName, String fontFileName) {
         this.currentFontRealName = fontRealName;
@@ -219,8 +244,4 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
             updateDrawerTitle(position);
         }
     }
-    
-    public DrawerLayout getDrawerLayout() {
-        return mDrawerLayout;
-    }
-    }
+}
