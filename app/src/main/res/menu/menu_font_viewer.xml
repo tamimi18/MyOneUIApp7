@@ -10,7 +10,7 @@
 
     <item
         android:id="@+id/menu_font_info"
-        android:icon="@drawable/ic_oui_info_outline"
+        android:icon="@drawable/ic_oui_info"
         android:title="@string/font_viewer_info"
         app:showAsAction="always" />
 
