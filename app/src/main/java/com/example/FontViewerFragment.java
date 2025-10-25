@@ -5,12 +5,16 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Typeface;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.TypedValue;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.FrameLayout;
+import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -20,6 +24,7 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.Fragment;
 import androidx.preference.PreferenceManager;
 
@@ -29,6 +34,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.RandomAccessFile;
+import java.nio.charset.Charset;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -59,6 +65,10 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
 
     private ActivityResultLauncher<Intent> fontPickerLauncher;
     private OnFontChangedListener fontChangedListener;
+
+    // الحقول الجديدة لإدارة زر المعلومات داخل الـ Fragment
+    private ImageButton infoButton;
+    private boolean infoButtonAdded = false;
 
     public interface OnFontChangedListener {
         void onFontChanged(String fontRealName, String fontFileName);
@@ -140,13 +150,13 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
             updatePreviewTexts();
         }
 
-        // إعداد زر المعلومات في شريط Drawer (إن وُجد)
+        // الآن نضيف زر المعلومات داخل شاشة الـ Fragment (ليس في Drawer)
         setupInfoButton();
     }
 
     @Override
     public void onPause() {
-        // إزالة زر المعلومات أولاً حتى لا يبقى في Activity الأخرى
+        // نزيل الزر قبل إلغاء التسجيل
         removeInfoButton();
 
         super.onPause();
@@ -177,11 +187,18 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
 
         Map<String, String> metadata = extractFontMetadata(new File(currentFontPath));
 
+        // إذا لم تُستخرج معلومات، نحاول على الأقل إظهار الاسم الحقيقي كـ fallback
         if (metadata == null || metadata.isEmpty()) {
-            Toast.makeText(requireContext(),
-                getString(R.string.font_metadata_error),
-                Toast.LENGTH_SHORT).show();
-            return;
+            String real = extractFontRealName(new File(currentFontPath));
+            metadata = new LinkedHashMap<>();
+            if (real != null && !real.isEmpty()) {
+                metadata.put("Full Name", real);
+            } else {
+                Toast.makeText(requireContext(),
+                    getString(R.string.font_metadata_error),
+                    Toast.LENGTH_SHORT).show();
+                return;
+            }
         }
 
         createMetadataDialog(metadata);
@@ -189,6 +206,7 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
 
     /**
      * استخراج Metadata من ملف TTF/OTF (جدول "name")
+     * الآن يقرأ سجلات كل اللغات ويعالج ترميزات Mac/Windows بمرونة.
      */
     private Map<String, String> extractFontMetadata(File fontFile) {
         Map<String, String> metadata = new LinkedHashMap<>();
@@ -209,7 +227,7 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
             for (int i = 0; i < numTables; i++) {
                 byte[] tag = new byte[4];
                 raf.read(tag);
-                String tagName = new String(tag, "US-ASCII");
+                String tagName = new String(tag, Charset.forName("US-ASCII"));
 
                 raf.skipBytes(4); // checksum
                 long offset = readUInt32(raf);
@@ -230,6 +248,9 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
             int count = raf.readUnsignedShort(); // عدد السجلات
             int stringOffset = raf.readUnsignedShort(); // موقع النصوص
 
+            // سنجمع سجلات ونعطي أولوية لمدخلات Windows (platformID==3)
+            Map<String, String> windowsFirst = new LinkedHashMap<>();
+
             for (int i = 0; i < count; i++) {
                 int platformID = raf.readUnsignedShort();
                 int encodingID = raf.readUnsignedShort();
@@ -238,36 +259,60 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
                 int length = raf.readUnsignedShort();
                 int offset = raf.readUnsignedShort();
 
-                boolean isWindowsEnglish = (platformID == 3 && languageID == 0x0409);
-                boolean isMacEnglish = (platformID == 1 && languageID == 0);
-
-                if (!isWindowsEnglish && !isMacEnglish) {
-                    continue;
-                }
-
                 long currentPos = raf.getFilePointer();
 
                 raf.seek(nameTableOffset + stringOffset + offset);
                 byte[] nameBytes = new byte[length];
                 raf.read(nameBytes);
 
-                String value;
-                if (platformID == 3) {
-                    value = new String(nameBytes, "UTF-16BE").trim();
-                } else {
-                    value = new String(nameBytes, "US-ASCII").trim();
-                }
-
-                String key = getNameIDLabel(nameID);
-                if (key != null && !value.isEmpty()) {
-                    if (!metadata.containsKey(key)) {
-                        metadata.put(key, value);
+                String value = null;
+                try {
+                    if (platformID == 3) {
+                        // Windows: UTF-16BE
+                        value = new String(nameBytes, "UTF-16BE").trim();
+                    } else if (platformID == 1) {
+                        // Mac: نحاول MacRoman ثم ASCII
+                        try {
+                            value = new String(nameBytes, "MacRoman").trim();
+                        } catch (Exception ex) {
+                            value = new String(nameBytes, "US-ASCII").trim();
+                        }
+                    } else {
+                        // محاولات عامة
+                        value = new String(nameBytes, Charset.forName("UTF-8")).trim();
+                    }
+                } catch (Exception e) {
+                    try {
+                        value = new String(nameBytes, Charset.forName("ISO-8859-1")).trim();
+                    } catch (Exception ex) {
+                        value = null;
                     }
                 }
 
                 raf.seek(currentPos);
+
+                if (value == null || value.isEmpty()) {
+                    continue;
+                }
+
+                String key = getNameIDLabel(nameID);
+                if (key == null) continue;
+
+                // إذا لدينا مدخل Windows بالفعل، لا نستبدله بمداخلة أقل أولوية
+                if (windowsFirst.containsKey(key)) {
+                    // إذا الحالي من Windows ويُفضل استبدال القديم
+                    // (نعتبر platformID==3 أفضل)
+                    // هنا لا نعرف platform من المخزن، لذا نحل: إذا الحالي Windows، استبدل
+                    if (platformID == 3) {
+                        windowsFirst.put(key, value);
+                    }
+                } else {
+                    windowsFirst.put(key, value);
+                }
             }
 
+            // انسخ إلى النتيجة بترتيب مهم
+            metadata.putAll(windowsFirst);
             return metadata;
 
         } catch (Exception e) {
@@ -337,19 +382,18 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
     private void addMetadataItem(LinearLayout parent, String key, String value) {
         Context context = requireContext();
 
-        // استرجاع ألوان النص من السمات بشكل آمن
         TypedValue tv = new TypedValue();
         int colorSecondary;
         int colorPrimary;
         if (context.getTheme().resolveAttribute(android.R.attr.textColorSecondary, tv, true)) {
             colorSecondary = tv.data;
         } else {
-            colorSecondary = 0xFF757575; // fallback gray
+            colorSecondary = 0xFF757575;
         }
         if (context.getTheme().resolveAttribute(android.R.attr.textColorPrimary, tv, true)) {
             colorPrimary = tv.data;
         } else {
-            colorPrimary = 0xFF212121; // fallback dark
+            colorPrimary = 0xFF212121;
         }
 
         TextView titleView = new TextView(context);
@@ -548,7 +592,11 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
                     if (platformID == 3) {
                         name = new String(nameBytes, "UTF-16BE");
                     } else {
-                        name = new String(nameBytes, "US-ASCII");
+                        try {
+                            name = new String(nameBytes, "MacRoman");
+                        } catch (Exception e) {
+                            name = new String(nameBytes, "US-ASCII");
+                        }
                     }
 
                     if (nameID == 4) {
@@ -714,65 +762,116 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
     }
 
     /**
-     * إعداد زر المعلومات في Toolbar (DrawerLayout) — يُضاف عند ظهور الـ Fragment
+     * إضافة زر المعلومات ضمن شاشة الـ Fragment (عادةً على يمين Toolbar).
+     * إذا وُجد Toolbar في الـ Activity (مع id common: toolbar أو oui_toolbar) نضيف الزر بداخله،
+     * وإلا نضيف زرًا صغيرًا كـ overlay في زاوية اليمين العليا من الـ Fragment.
      */
     private void setupInfoButton() {
-        if (!(getActivity() instanceof MainActivity)) {
-            return;
-        }
+        if (infoButtonAdded) return; // لا نضيف مرتين
 
-        MainActivity mainActivity = (MainActivity) getActivity();
-        dev.oneuiproject.oneui.layout.DrawerLayout drawerLayout = mainActivity.getDrawerLayout();
-
-        if (drawerLayout == null) {
-            return;
-        }
-
+        Drawable infoDrawable = null;
         try {
             Class<?> ouiDrawable = Class.forName("dev.oneuiproject.oneui.R$drawable");
             java.lang.reflect.Field iconField = ouiDrawable.getField("ic_oui_info_outline");
             int iconResId = iconField.getInt(null);
-
-            android.graphics.drawable.Drawable infoIcon = requireContext().getDrawable(iconResId);
-
-            drawerLayout.setDrawerButtonIcon(infoIcon);
-            drawerLayout.setDrawerButtonTooltip(getString(R.string.menu_font_info));
-            drawerLayout.setDrawerButtonOnClickListener(v -> showFontMetadata());
-
-        } catch (Exception e) {
-            android.util.Log.e("FontViewerFragment", "Failed to setup info button", e);
-
+            infoDrawable = requireContext().getDrawable(iconResId);
+        } catch (Exception ignored) {
+            // fallback إلى أيقونة أندرويد القياسية
             try {
-                android.graphics.drawable.Drawable fallbackIcon =
-                    requireContext().getDrawable(android.R.drawable.ic_menu_info_details);
-
-                if (fallbackIcon != null) {
-                    drawerLayout.setDrawerButtonIcon(fallbackIcon);
-                    drawerLayout.setDrawerButtonTooltip(getString(R.string.menu_font_info));
-                    drawerLayout.setDrawerButtonOnClickListener(v -> showFontMetadata());
-                }
+                infoDrawable = requireContext().getDrawable(android.R.drawable.ic_menu_info_details);
             } catch (Exception ex) {
-                // تجاهل إذا فشل كل شيء
+                infoDrawable = null;
             }
         }
+
+        // إنشاء الزر
+        infoButton = new ImageButton(requireContext());
+        infoButton.setImageDrawable(infoDrawable);
+        infoButton.setBackground(null);
+        infoButton.setContentDescription(getString(R.string.menu_font_info));
+        infoButton.setOnClickListener(v -> showFontMetadata());
+
+        // محاولة إيجاد Toolbar شائع في الـ Activity
+        View rootActivityView = requireActivity().findViewById(android.R.id.content);
+        Toolbar toolbar = null;
+        View maybeToolbar = null;
+        // جرّب بعض الـ ids شائعة
+        int[] possibleToolbarIds = new int[] {
+                getResources().getIdentifier("toolbar", "id", requireContext().getPackageName()),
+                getResources().getIdentifier("oui_toolbar", "id", requireContext().getPackageName()),
+                getResources().getIdentifier("action_bar", "id", requireContext().getPackageName())
+        };
+        for (int id : possibleToolbarIds) {
+            if (id != 0) {
+                View v = requireActivity().findViewById(id);
+                if (v instanceof Toolbar) {
+                    toolbar = (Toolbar) v;
+                    break;
+                } else if (v != null && maybeToolbar == null) {
+                    maybeToolbar = v;
+                }
+            }
+        }
+
+        // لو حصلنا على Toolbar حقيقي أضف الزر بداخله على اليمين
+        if (toolbar != null) {
+            Toolbar.LayoutParams lp = new Toolbar.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+            );
+            lp.gravity = Gravity.END | Gravity.CENTER_VERTICAL;
+            int margin = (int) (8 * getResources().getDisplayMetrics().density);
+            lp.setMarginEnd(margin);
+            toolbar.addView(infoButton, lp);
+            infoButtonAdded = true;
+            return;
+        }
+
+        // إن لم نجد Toolbar، نضيف الزر كـ overlay داخل root view الخاص بالـ Fragment
+        View fragmentRoot = getView();
+        if (fragmentRoot != null && fragmentRoot instanceof ViewGroup) {
+            FrameLayout overlay = new FrameLayout(requireContext());
+            FrameLayout.LayoutParams overlayParams = new FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.MATCH_PARENT
+            );
+            overlay.setLayoutParams(overlayParams);
+
+            // زر في زاوية اليمين العليا
+            FrameLayout.LayoutParams btnLp = new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    Gravity.END | Gravity.TOP
+            );
+            int marginTop = (int) (8 * getResources().getDisplayMetrics().density);
+            int marginEnd = (int) (8 * getResources().getDisplayMetrics().density);
+            btnLp.setMargins(0, marginTop, marginEnd, 0);
+
+            overlay.addView(infoButton, btnLp);
+
+            // أضف overlay فوق الـ fragment root (إذا كان root هو ViewGroup)
+            ((ViewGroup) fragmentRoot).addView(overlay);
+            infoButtonAdded = true;
+            return;
+        }
+
+        // إذا فشل كل شيء: نجعل الزر غير مرئي ولن نضيفه
+        infoButton = null;
+        infoButtonAdded = false;
     }
 
     /**
-     * إزالة زر المعلومات من Toolbar (DrawerLayout) — يُستدعى عند اختفاء الـ Fragment
+     * إزالة زر المعلومات إذا أُضيف سابقًا
      */
     private void removeInfoButton() {
-        if (!(getActivity() instanceof MainActivity)) {
-            return;
+        if (!infoButtonAdded || infoButton == null) return;
+
+        // حاول إزالة من الـ Toolbar أو من الأب الحالي
+        ViewGroup parent = (ViewGroup) infoButton.getParent();
+        if (parent != null) {
+            parent.removeView(infoButton);
         }
-
-        MainActivity mainActivity = (MainActivity) getActivity();
-        dev.oneuiproject.oneui.layout.DrawerLayout drawerLayout = mainActivity.getDrawerLayout();
-
-        if (drawerLayout == null) {
-            return;
-        }
-
-        drawerLayout.setDrawerButtonIcon(null);
-        drawerLayout.setDrawerButtonOnClickListener(null);
+        infoButton = null;
+        infoButtonAdded = false;
     }
-                    }
+                        }
