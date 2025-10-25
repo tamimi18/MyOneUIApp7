@@ -1,1 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ملف arrays.xml - قوائم الخيارات
+    
+    هذا الملف يحتوي على قوائم الخيارات المستخدمة في ListPreference
+    
+    الفكرة الأساسية:
+    عندما يكون لدينا ListPreference (مثل اختيار اللغة)، نحتاج إلى قائمتين:
+    
+    1. entries: النصوص التي تظهر للمستخدم
+       - مثال: "System", "Arabic", "English"
+       - يمكن أن تكون مترجمة لعدة لغات
+       - تُعرض في dialog الاختيار
+    
+    2. entryValues: القيم الفعلية التي تُحفظ
+       - مثال: "0", "1", "2"
+       - يجب أن تكون ثابتة ولا تتغير مع تغيير اللغة
+       - تُحفظ في SharedPreferences
+    
+    لماذا نفصلهما؟
+    تخيل المستخدم اختار "العربية" ثم غيّر لغة التطبيق للإنجليزية.
+    إذا حفظنا "العربية" كقيمة، سنواجه مشكلة في المقارنة.
+    لكن إذا حفظنا "1" (رقم ثابت)، لا توجد مشكلة.
+    
+    القاعدة الذهبية:
+    - entries للعرض (قابلة للترجمة)
+    - entryValues للحفظ (ثابتة دائماً)-->
+<resources>
 
+    <!-- ═══════════════════════════════════════════════════════════════
+         قائمة خيارات اللغة (Language Options)
+         ═══════════════════════════════════════════════════════════════ -->
+    
+    <!-- النصوص المعروضة للمستخدم -->
+    <string-array name="settings_language_entries">
+        <item>@string/settings_language_system</item>
+        <item>@string/settings_language_arabic</item>
+        <item>@string/settings_language_english</item>
+    </string-array>
+    
+    <!--القيم المحفوظة
+        
+        هذه القيم تطابق الثوابت في SettingsHelper:
+        - "0" = LANGUAGE_SYSTEM
+        - "1" = LANGUAGE_ARABIC
+        - "2" = LANGUAGE_ENGLISH
+        
+        ملاحظة: نستخدم String وليس int لأن ListPreference يعمل مع Strings
+        سنحول إلى int عند الحاجة في الكود
+    -->
+    <string-array name="settings_language_values">
+        <item>0</item>
+        <item>1</item>
+        <item>2</item>
+    </string-array>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         قائمة خيارات الثيم (Theme Options)
+         ═══════════════════════════════════════════════════════════════ -->
+    
+    <!-- النصوص المعروضة للمستخدم -->
+    <string-array name="settings_theme_entries">
+        <item>@string/settings_theme_system</item>
+        <item>@string/settings_theme_light</item>
+        <item>@string/settings_theme_dark</item>
+    </string-array>
+    
+    <!--
+        القيم المحفوظة
+        
+        تطابق الثوابت في SettingsHelper:
+        - "0" = THEME_SYSTEM
+        - "1" = THEME_LIGHT
+        - "2" = THEME_DARK
+    -->
+    <string-array name="settings_theme_values">
+        <item>0</item>
+        <item>1</item>
+        <item>2</item>
+    </string-array>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         قائمة خيارات الخط (Font Options)
+         ═══════════════════════════════════════════════════════════════ -->
+    
+    <!-- النصوص المعروضة للمستخدم -->
+    <string-array name="settings_font_entries">
+        <item>@string/settings_font_system</item>
+        <item>@string/settings_font_wf_regular</item>
+        <item>@string/settings_font_samsung_one</item>
+    </string-array>
+    
+    <!--
+        القيم المحفوظة
+        
+        تطابق الثوابت في SettingsHelper:
+        - "0" = FONT_SYSTEM
+        - "1" = FONT_WF
+        - "2" = FONT_SAMSUNG
+    -->
+    <string-array name="settings_font_values">
+        <item>0</item>
+        <item>1</item>
+        <item>2</item>
+    </string-array>
+
+</resources>
