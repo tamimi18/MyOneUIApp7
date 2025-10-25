@@ -3,6 +3,9 @@ package com.example.oneuiapp;
 import android.content.Context;
 import android.os.Build;
 import android.os.Bundle;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
@@ -14,12 +17,12 @@ import java.util.List;
 import dev.oneuiproject.oneui.layout.DrawerLayout;
 
 /**
- * MainActivity - النسخة المصححة مع إزالة المراجع غير المستخدمة
+ * MainActivity - النسخة المحدثة مع Menu ديناميكي
  * 
- * التحديث الجديد:
- * - تم حذف TAG_SETTINGS لأنه لم يعد مستخدماً
- * - تم تبسيط الكود وتنظيفه من المراجع القديمة
- * - جميع الوظائف تعمل بشكل صحيح مع PreferenceFragmentCompat
+ * التحديثات الجديدة:
+ * 1. إضافة Menu ديناميكي يظهر أيقونة المعلومات في شاشة FontViewer فقط
+ * 2. التواصل مع FontViewerFragment لعرض معلومات الخط عند الضغط
+ * 3. تحديث Menu تلقائياً عند تغيير Fragment
  */
 public class MainActivity extends BaseActivity implements FontViewerFragment.OnFontChangedListener {
 
@@ -30,16 +33,10 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
     private int mCurrentFragmentIndex = 0;
     
     private static final String KEY_CURRENT_FRAGMENT = "current_fragment_index";
-    
-    // ★★★ تم حذف TAG_SETTINGS القديم لأنه لم يعد مستخدماً ★★★
     private static final String TAG_HOME = "fragment_home";
     private static final String TAG_FONT_VIEWER = "fragment_font_viewer";
-    // لاحظ: لم نعد بحاجة لـ TAG منفصل لـ SettingsFragment
-    // لأنها الآن PreferenceFragment بدون layout مخصص
     
-    /**
-     * متغيرات لحفظ معلومات الخط الحالي
-     */
+    // متغيرات لحفظ معلومات الخط الحالي
     private String currentFontRealName;
     private String currentFontFileName;
 
@@ -61,7 +58,7 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
             
             FragmentManager fm = getSupportFragmentManager();
             Fragment homeFragment = fm.findFragmentByTag(TAG_HOME);
-            Fragment settingsFragment = fm.findFragmentByTag("settings"); // اسم بسيط
+            Fragment settingsFragment = fm.findFragmentByTag("settings");
             Fragment fontViewerFragment = fm.findFragmentByTag(TAG_FONT_VIEWER);
             
             if (homeFragment != null && settingsFragment != null && fontViewerFragment != null) {
@@ -97,7 +94,6 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
         FragmentManager fm = getSupportFragmentManager();
         FragmentTransaction transaction = fm.beginTransaction();
         
-        // إضافة Fragments مع tags مبسطة
         transaction.add(R.id.main_content, mFragments.get(0), TAG_HOME);
         transaction.add(R.id.main_content, mFragments.get(1), "settings");
         transaction.hide(mFragments.get(1));
@@ -119,6 +115,12 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
                         mCurrentFragmentIndex = position;
                         showFragmentFast(position);
                         updateDrawerTitle(position);
+                        
+                        // ★★★ تحديث Menu عند تغيير Fragment ★★★
+                        // هذا السطر مهم جداً: يخبر Android بإعادة إنشاء Menu
+                        // مما يؤدي لاستدعاء onPrepareOptionsMenu تلقائياً
+                        invalidateOptionsMenu();
+                        
                         return true;
                     }
                     return false;
@@ -149,6 +151,70 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
         }
         
         transaction.commitNow();
+    }
+
+    /**
+     * ★★★ دالة جديدة: إنشاء Menu ★★★
+     * 
+     * هذه الدالة تُستدعى تلقائياً عند إنشاء Activity لأول مرة
+     * نستخدمها لتضخيم (inflate) ملف menu.xml الذي يحتوي على أيقونة المعلومات
+     */
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.menu_main, menu);
+        return true;
+    }
+
+    /**
+     * ★★★ دالة جديدة: تحديث Menu حسب Fragment الحالي ★★★
+     * 
+     * هذه الدالة تُستدعى في حالتين:
+     * 1. بعد onCreateOptionsMenu مباشرة
+     * 2. عندما نستدعي invalidateOptionsMenu() بأنفسنا
+     * 
+     * الفكرة: نتحقق من Fragment الحالي، إذا كان FontViewerFragment نُظهر الأيقونة
+     * وإلا نخفيها. بهذه الطريقة الأيقونة ديناميكية وتظهر فقط عند الحاجة.
+     */
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        MenuItem infoItem = menu.findItem(R.id.menu_font_info);
+        
+        if (infoItem != null) {
+            // إظهار الأيقونة فقط في شاشة FontViewer (index = 2)
+            infoItem.setVisible(mCurrentFragmentIndex == 2);
+        }
+        
+        return super.onPrepareOptionsMenu(menu);
+    }
+
+    /**
+     * ★★★ دالة جديدة: معالجة الضغط على menu items ★★★
+     * 
+     * عندما يضغط المستخدم على أيقونة المعلومات، نتحقق أولاً أننا في
+     * FontViewerFragment، ثم نطلب منه عرض معلومات الخط.
+     * 
+     * هذه الطريقة آمنة لأننا نتحقق من كل شيء قبل الاستدعاء:
+     * 1. هل الـ Fragment موجود؟
+     * 2. هل هو من النوع الصحيح؟
+     * 3. هل الدالة موجودة؟
+     */
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == R.id.menu_font_info) {
+            // التحقق من أننا في شاشة FontViewer
+            if (mCurrentFragmentIndex == 2 && mFragments.size() > 2) {
+                Fragment currentFragment = mFragments.get(2);
+                
+                if (currentFragment instanceof FontViewerFragment) {
+                    // استدعاء دالة عرض معلومات الخط
+                    ((FontViewerFragment) currentFragment).showFontMetadata();
+                }
+            }
+            return true;
+        }
+        
+        return super.onOptionsItemSelected(item);
     }
 
     /**
@@ -244,4 +310,4 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
             updateDrawerTitle(position);
         }
     }
-}
+                                     }
