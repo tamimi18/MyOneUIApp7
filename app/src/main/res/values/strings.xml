@@ -104,37 +104,4 @@
     <string name="font_viewer_import_font">Import font</string>
     <string name="font_viewer_toggle_bold">Toggle bold</string>
 
-    <!-- أضف هذه النصوص في نهاية ملف app/src/main/res/values/strings.xml -->
-
-    <!-- ═══════════════════════════════════════════════════════════════
-         نصوص معلومات الخط (Font Info)
-         ═══════════════════════════════════════════════════════════════ -->
-    
-    <!-- عنوان القائمة والنافذة -->
-    <string name="font_viewer_info">Font Information</string>
-    <string name="font_info_dialog_title">Font Information</string>
-    
-    <!-- أقسام المعلومات -->
-    <string name="font_info_basic">Basic Information</string>
-    <string name="font_info_technical">Technical Details</string>
-    <string name="font_info_designer_info">Designer Information</string>
-    
-    <!-- تسميات المعلومات -->
-    <string name="font_info_full_name">Full Name</string>
-    <string name="font_info_family_name">Family Name</string>
-    <string name="font_info_style">Style</string>
-    <string name="font_info_version">Version</string>
-    <string name="font_info_type">Type</string>
-    <string name="font_info_designer">Designer</string>
-    <string name="font_info_copyright">Copyright</string>
-    <string name="font_info_description">Description</string>
-    
-    <!-- قيم نوع الخط -->
-    <string name="font_info_type_variable">Variable Font</string>
-    <string name="font_info_type_static">Static Font</string>
-    
-    <!-- رسائل خطأ -->
-    <string name="font_info_no_font">Please select a font first</string>
-    <string name="font_info_error">Unable to extract font information</string>
-
 </resources>
