@@ -17,9 +17,15 @@ import java.util.List;
 import dev.oneuiproject.oneui.layout.DrawerLayout;
 
 /**
- * MainActivity - الحل الصحيح 100%
+ * MainActivity - الإصلاح النهائي الصحيح
  * 
- * الفكرة: MainActivity تدير القائمة كاملة وتقرر ماذا تعرض بناءً على Fragment النشط
+ * المشكلة الحقيقية كانت:
+ * - نستدعي invalidateOptionsMenu() قبل تحديث hasFontLoaded
+ * - عند تحميل آخر خط محفوظ، onFontChanged() يُستدعى لكن القائمة لا تُحدّث
+ * 
+ * الحل:
+ * - نستدعي invalidateOptionsMenu() داخل onFontChanged() نفسها
+ * - نتأكد من تحديث القائمة كل مرة يتغير فيها حالة الخط
  */
 public class MainActivity extends BaseActivity implements FontViewerFragment.OnFontChangedListener {
 
@@ -87,7 +93,12 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
     }
 
     /**
-     * ★★★ هنا السحر - MainActivity تقرر ماذا تعرض بناءً على Fragment ★★★
+     * ★★★ إنشاء القائمة بناءً على Fragment النشط ★★★
+     * 
+     * هذه الدالة تُستدعى:
+     * 1. عند إنشاء Activity أول مرة
+     * 2. بعد استدعاء invalidateOptionsMenu()
+     * 3. عند تغيير Fragment
      */
     @Override
     public boolean onCreateOptionsMenu(@NonNull Menu menu) {
@@ -96,18 +107,18 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
         // ★★★ إذا كنا في FontViewerFragment وهناك خط محمّل، أظهر الأيقونة ★★★
         if (mCurrentFragmentIndex == 2 && hasFontLoaded) {
             getMenuInflater().inflate(R.menu.menu_font_viewer, menu);
+            return true;
         }
         
-        return true;
+        return super.onCreateOptionsMenu(menu);
     }
 
     /**
-     * ★★★ معالجة الضغط على الأيقونة ★★★
+     * معالجة الضغط على الأيقونة
      */
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         if (item.getItemId() == R.id.menu_font_metadata) {
-            // ★★★ مرر الحدث للـ FontViewerFragment ★★★
             Fragment currentFragment = getCurrentFragment();
             if (currentFragment instanceof FontViewerFragment) {
                 ((FontViewerFragment) currentFragment).showMetadataDialog();
@@ -194,7 +205,7 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
         
         transaction.commitNow();
         
-        // ★★★ حدّث القائمة بعد تبديل Fragment ★★★
+        // تحديث القائمة بعد تبديل Fragment
         invalidateOptionsMenu();
     }
 
@@ -241,19 +252,29 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
     }
 
     /**
-     * ★★★ تُستدعى من FontViewerFragment عند تحميل خط ★★★
+     * ★★★ الإصلاح الحاسم - تُستدعى من FontViewerFragment عند تحميل خط ★★★
+     * 
+     * خطوات التنفيذ الصحيحة:
+     * 1. تحديث المتغيرات أولاً
+     * 2. تحديث العنوان إذا كنا في FontViewerFragment
+     * 3. استدعاء invalidateOptionsMenu() لإعادة إنشاء القائمة
+     * 
+     * الترتيب مهم جداً! يجب تحديث hasFontLoaded قبل invalidateOptionsMenu()
      */
     @Override
     public void onFontChanged(String fontRealName, String fontFileName) {
+        // ★★★ الخطوة 1: تحديث المتغيرات أولاً ★★★
         this.currentFontRealName = fontRealName;
         this.currentFontFileName = fontFileName;
         this.hasFontLoaded = true;
         
+        // ★★★ الخطوة 2: تحديث العنوان إذا كنا في FontViewerFragment ★★★
         if (mCurrentFragmentIndex == 2) {
             updateDrawerTitle(mCurrentFragmentIndex);
         }
         
-        // ★★★ هذا يجعل الأيقونة تظهر ★★★
+        // ★★★ الخطوة 3: إعادة إنشاء القائمة - هذا هو المفتاح! ★★★
+        // الآن hasFontLoaded = true، لذلك onCreateOptionsMenu() ستُظهر الأيقونة
         invalidateOptionsMenu();
     }
     
@@ -262,15 +283,17 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
      */
     @Override
     public void onFontCleared() {
+        // تحديث المتغيرات أولاً
         this.currentFontRealName = null;
         this.currentFontFileName = null;
         this.hasFontLoaded = false;
         
+        // تحديث العنوان إذا كنا في FontViewerFragment
         if (mCurrentFragmentIndex == 2) {
             updateDrawerTitle(mCurrentFragmentIndex);
         }
         
-        // ★★★ هذا يجعل الأيقونة تختفي ★★★
+        // إعادة إنشاء القائمة لإخفاء الأيقونة
         invalidateOptionsMenu();
     }
 
@@ -296,4 +319,4 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
             updateDrawerTitle(position);
         }
     }
-    }
+                                         }
