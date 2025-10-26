@@ -4,61 +4,61 @@
     <string name="app_name">تطبيق OneUI</string>
     <string name="app_subtitle">تجربة OneUI الحديثة</string>
     <string name="settings_subtitle">خصص تطبيقك</string>
-    
+
     <!-- عناوين الأقسام -->
     <string name="title_features">الميزات الرئيسية</string>
     <string name="title_about">حول</string>
     <string name="title_settings">الإعدادات</string>
     <string name="swipe_up">اسحب للأعلى</string>
-    
+
     <!-- الميزات -->
     <string name="feature1">يتم عرض المحتوى والتحكم به بسهولة</string>
     <string name="feature2">تصميم بسيط وسهل الاستخدام</string>
     <string name="feature3">عناصر واجهة مستخدم متناسقة لتجربة أفضل</string>
     <string name="feature4">يدعم الوضع الداكن لراحة العين</string>
-    
+
     <!-- حول التطبيق -->
     <string name="about_text">هذا تطبيق تجريبي لعرض تصميم OneUI</string>
-    
+
     <!-- عناصر الدرج -->
     <string name="drawer_home">الرئيسية</string>
     <string name="drawer_settings">الإعدادات</string>
     <string name="drawer_font_viewer">عارض الخطوط</string>
-    
+
     <!-- الإعدادات -->
     <string name="settings_info">يمكنك التحكم بإعدادات التطبيق من هنا</string>
-    
+
     <!-- التنقل -->
     <string name="navigation_drawer_open">فتح درج التنقل</string>
     <string name="navigation_drawer_close">إغلاق درج التنقل</string>
-    
+
     <!-- ═══════════════════════════════════════════════════════════════
          إعدادات عامة (General Settings) - جديد
          ═══════════════════════════════════════════════════════════════ -->
-    
+
     <!-- عنوان قسم General -->
     <string name="settings_general">عام</string>
-    
+
     <!-- نص المعاينة (Preview Text) -->
     <string name="settings_preview_text">نص المعاينة</string>
     <string name="settings_preview_text_summary">عدّل النص المعروض في المعاينة</string>
     <string name="settings_preview_text_default">الحب سر الوجود والجمال أساس الحياة</string>
     <string name="settings_preview_text_dialog_title">تعديل نص المعاينة</string>
     <string name="settings_preview_text_dialog_message">أدخل النص الذي تريد عرضه في المعاينة</string>
-    
+
     <!-- ═══════════════════════════════════════════════════════════════
          إعدادات المظهر (Appearance Settings)
          ═══════════════════════════════════════════════════════════════ -->
-    
+
     <!-- عنوان قسم المظهر -->
     <string name="settings_appearance">المظهر</string>
-    
+
     <!-- إعدادات اللغة -->
     <string name="settings_language">اللغة</string>
     <string name="settings_language_system">افتراضي النظام</string>
     <string name="settings_language_arabic">العربية</string>
     <string name="settings_language_english">الإنجليزية</string>
-    
+
     <!-- إعدادات الثيم -->
     <string name="settings_theme">الثيم</string>
     <string name="settings_theme_system">افتراضي النظام</string>
@@ -74,7 +74,7 @@
     <!-- ═══════════════════════════════════════════════════════════════
          إعدادات الإشعارات (Notification Settings)
          ═══════════════════════════════════════════════════════════════ -->
-    
+
     <!-- عنوان قسم الإشعارات -->
     <string name="settings_notifications_section">الإشعارات</string>
     <string name="settings_notifications_placeholder">ميزة الإشعارات قادمة قريبًا</string>
@@ -86,16 +86,16 @@
     <!-- ═══════════════════════════════════════════════════════════════
          نصوص عارض الخطوط (Font Viewer)
          ═══════════════════════════════════════════════════════════════ -->
-    
+
     <string name="font_viewer_select_font">اختر ملف الخط</string>
     <string name="font_viewer_select_description">اختر ملف خط من جهازك (‎.ttf‎ أو ‎.otf‎)</string>
     <string name="font_viewer_no_font_selected">لم يتم اختيار أي خط</string>
-    
+
     <string name="font_viewer_english_sentence">The quick brown fox jumps over the lazy dog.</string>
-    <string name="font_viewer_english_numbers">1234567890</string>
+    <string name="font_viewer_english_numbers">١٢٣٤٥٦٧٨٩٠</string>
     <string name="font_viewer_arabic_sentence">الحب سر الوجود والجمال أساس الحياة.</string>
     <string name="font_viewer_arabic_numbers">١٢٣٤٥٦٧٨٩٠</string>
-    
+
     <string name="font_viewer_error_opening_picker">تعذر فتح منتقي الملفات</string>
     <string name="font_viewer_error_loading_font">حدث خطأ أثناء تحميل ملف الخط</string>
 
@@ -104,4 +104,12 @@
     <string name="font_viewer_import_font">استيراد خط</string>
     <string name="font_viewer_toggle_bold">تفعيل/إلغاء العريض</string>
 
+    <!-- معلومات الخط -->
+    <string name="font_info_title">معلومات الخط</string>
+    <string name="font_full_name">الاسم الكامل</string>
+    <string name="font_family">اسم العائلة</string>
+    <string name="font_version">النسخة</string>
+    <string name="font_designer">المصمم</string>
+    <string name="font_license">الرخصة</string>
+    <string name="font_creation_date">تاريخ الإنشاء</string>
 </resources>
