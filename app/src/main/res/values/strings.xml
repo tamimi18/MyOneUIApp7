@@ -28,36 +28,36 @@
     <!-- Settings -->
     <string name="settings_info">You can control app settings from here</string>
 
-    <!-- Navigation (fixed key names: use underscores, no spaces) -->
+    <!-- Navigation keys (no spaces) -->
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
 
     <!-- General settings -->
     <string name="settings_general">General</string>
 
-    <!-- Preview text (Preview Text) -->
+    <!-- Preview text -->
     <string name="settings_preview_text">Preview Text</string>
     <string name="settings_preview_text_summary">Edit the text shown in preview</string>
     <string name="settings_preview_text_default">The quick brown fox jumps over the lazy dog</string>
     <string name="settings_preview_text_dialog_title">Edit Preview Text</string>
     <string name="settings_preview_text_dialog_message">Enter the text you want to display in the preview</string>
 
-    <!-- Appearance settings -->
+    <!-- Appearance -->
     <string name="settings_appearance">Appearance</string>
 
-    <!-- Language settings -->
+    <!-- Language -->
     <string name="settings_language">Language</string>
     <string name="settings_language_system">System</string>
     <string name="settings_language_arabic">Arabic</string>
     <string name="settings_language_english">English</string>
 
-    <!-- Theme settings -->
+    <!-- Theme -->
     <string name="settings_theme">Theme</string>
     <string name="settings_theme_system">System</string>
     <string name="settings_theme_light">Light</string>
     <string name="settings_theme_dark">Dark</string>
 
-    <!-- Font settings -->
+    <!-- Font -->
     <string name="settings_font">Font Style</string>
     <string name="settings_font_system">System Default</string>
     <string name="settings_font_wf_regular">WF Regular</string>
@@ -71,15 +71,15 @@
     <string name="notifications_enabled">Notifications enabled</string>
     <string name="notifications_disabled">Notifications disabled</string>
 
-    <!-- Font viewer specific -->
+    <!-- Font viewer -->
     <string name="font_viewer_select_font">Choose Font File</string>
     <string name="font_viewer_select_description">Select a font file from your device (.ttf or .otf)</string>
     <string name="font_viewer_no_font_selected">No font selected</string>
 
     <string name="font_viewer_english_sentence">The quick brown fox jumps over the lazy dog.</string>
-    <string name="font_viewer_english_numbers">0 1 2 3 4 5 6 7 8 9</string>
+    <string name="font_viewer_english_numbers">0123456789</string>
     <string name="font_viewer_arabic_sentence">الحب سر الوجود والجمال أساس الحياة.</string>
-    <string name="font_viewer_arabic_numbers">0 1 2 3 4 5 6 7 8 9</string>
+    <string name="font_viewer_arabic_numbers">٠١٢٣٤٥٦٧٨٩</string>
 
     <string name="font_viewer_error_opening_picker">Unable to open file picker</string>
     <string name="font_viewer_error_loading_font">Error loading font file</string>
@@ -88,9 +88,12 @@
 
     <!-- Toolbar / menu -->
     <string name="menu_font_info">Info</string>
+    <!-- legacy alias (in case other files reference menu_font_info_title) -->
+    <string name="menu_font_info_title">Info</string>
+
     <string name="font_metadata_title">Font Information</string>
 
-    <!-- Footer / preview controls -->
+    <!-- Footer / controls -->
     <string name="font_viewer_adjust_size">Adjust font size</string>
     <string name="font_viewer_import_font">Import font</string>
     <string name="font_viewer_toggle_bold">Toggle bold</string>
