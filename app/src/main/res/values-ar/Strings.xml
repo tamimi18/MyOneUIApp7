@@ -32,11 +32,7 @@
     <string name="navigation_drawer_open">فتح درج التنقل</string>
     <string name="navigation_drawer_close">إغلاق درج التنقل</string>
 
-    <!-- ═══════════════════════════════════════════════════════════════
-         إعدادات عامة (General Settings) - جديد
-         ═══════════════════════════════════════════════════════════════ -->
-
-    <!-- عنوان قسم General -->
+    <!-- إعدادات عامة -->
     <string name="settings_general">عام</string>
 
     <!-- نص المعاينة (Preview Text) -->
@@ -46,11 +42,7 @@
     <string name="settings_preview_text_dialog_title">تعديل نص المعاينة</string>
     <string name="settings_preview_text_dialog_message">أدخل النص الذي تريد عرضه في المعاينة</string>
 
-    <!-- ═══════════════════════════════════════════════════════════════
-         إعدادات المظهر (Appearance Settings)
-         ═══════════════════════════════════════════════════════════════ -->
-
-    <!-- عنوان قسم المظهر -->
+    <!-- إعدادات المظهر -->
     <string name="settings_appearance">المظهر</string>
 
     <!-- إعدادات اللغة -->
@@ -71,11 +63,7 @@
     <string name="settings_font_wf_regular">WF عادي</string>
     <string name="settings_font_samsung_one">Samsung One</string>
 
-    <!-- ═══════════════════════════════════════════════════════════════
-         إعدادات الإشعارات (Notification Settings)
-         ═══════════════════════════════════════════════════════════════ -->
-
-    <!-- عنوان قسم الإشعارات -->
+    <!-- إعدادات الإشعارات -->
     <string name="settings_notifications_section">الإشعارات</string>
     <string name="settings_notifications_placeholder">ميزة الإشعارات قادمة قريبًا</string>
     <string name="settings_notifications">الإشعارات</string>
@@ -83,28 +71,31 @@
     <string name="notifications_enabled">الإشعارات مفعّلة</string>
     <string name="notifications_disabled">الإشعارات معطّلة</string>
 
-    <!-- ═══════════════════════════════════════════════════════════════
-         نصوص عارض الخطوط (Font Viewer)
-         ═══════════════════════════════════════════════════════════════ -->
-
+    <!-- نصوص عارض الخطوط (Font Viewer) -->
     <string name="font_viewer_select_font">اختر ملف الخط</string>
-    <string name="font_viewer_select_description">اختر ملف خط من جهازك (‎.ttf‎ أو ‎.otf‎)</string>
+    <string name="font_viewer_select_description">اختر ملف خط من جهازك (.ttf أو .otf)</string>
     <string name="font_viewer_no_font_selected">لم يتم اختيار أي خط</string>
 
     <string name="font_viewer_english_sentence">The quick brown fox jumps over the lazy dog.</string>
-    <string name="font_viewer_english_numbers">١٢٣٤٥٦٧٨٩٠</string>
+    <string name="font_viewer_english_numbers">0123456789</string>
     <string name="font_viewer_arabic_sentence">الحب سر الوجود والجمال أساس الحياة.</string>
-    <string name="font_viewer_arabic_numbers">١٢٣٤٥٦٧٨٩٠</string>
+    <string name="font_viewer_arabic_numbers">٠١٢٣٤٥٦٧٨٩</string>
 
     <string name="font_viewer_error_opening_picker">تعذر فتح منتقي الملفات</string>
     <string name="font_viewer_error_loading_font">حدث خطأ أثناء تحميل ملف الخط</string>
+    <string name="font_viewer_error_parsing">حدث خطأ أثناء استخراج بيانات الخط</string>
+    <string name="font_viewer_no_metadata">لا توجد بيانات لهذا الخط</string>
 
-    <!-- عارض الخطوط - نصوص الشريط السفلي -->
+    <!-- شريط الأدوات / خيارات -->
+    <string name="menu_font_info">معلومات</string>
+    <string name="font_metadata_title">معلومات الخط</string>
+
+    <!-- شريط الأدوات - وظائف عارض الخط -->
     <string name="font_viewer_adjust_size">تعديل حجم الخط</string>
     <string name="font_viewer_import_font">استيراد خط</string>
     <string name="font_viewer_toggle_bold">تفعيل/إلغاء العريض</string>
 
-    <!-- معلومات الخط -->
+    <!-- معلومات الخط — حقول عرض -->
     <string name="font_info_title">معلومات الخط</string>
     <string name="font_full_name">الاسم الكامل</string>
     <string name="font_family">اسم العائلة</string>
@@ -112,4 +103,8 @@
     <string name="font_designer">المصمم</string>
     <string name="font_license">الرخصة</string>
     <string name="font_creation_date">تاريخ الإنشاء</string>
+
+    <!-- عامة مساعدة -->
+    <string name="ok">حسناً</string>
+    <string name="cancel">إلغاء</string>
 </resources>
