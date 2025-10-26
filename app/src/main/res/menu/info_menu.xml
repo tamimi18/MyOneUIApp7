@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
       xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <!-- تأكد أن drawable/ic_oui_info_outline موجود (OneUI icons). -->
     <item
-        android:id="@+id/menu_info"
-        android:title="@string/font_info_title"
+        android:id="@+id/menu_font_info"
         android:icon="@drawable/ic_oui_info"
+        android:title="@string/menu_font_info_title"
         app:showAsAction="always" />
 </menu>
