@@ -28,8 +28,8 @@
     <!-- Settings -->
     <string name="settings_info">You can control app settings from here</string>
 
-    <!-- Navigation -->
-    <string name="navigation drawer open">Open navigation drawer</string>
+    <!-- Navigation (fixed key names: use underscores, no spaces) -->
+    <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
 
     <!-- General settings -->
