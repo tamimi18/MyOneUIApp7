@@ -17,12 +17,13 @@ import java.util.List;
 import dev.oneuiproject.oneui.layout.DrawerLayout;
 
 /**
- * MainActivity - الحل النهائي الكامل
+ * MainActivity - الحل النهائي الكامل لإظهار أيقونة المعلومات
  * 
- * المشكلة الأساسية:
- * DrawerLayout في OneUI يدير Toolbar بطريقة خاصة، ولا يسمح للـ Fragments
- * بإضافة menu items بسهولة. الحل هو استخدام Toolbar الخاص بالـ DrawerLayout
- * مباشرةً وإعطاء السيطرة للـ Fragment النشط.
+ * التغييرات الرئيسية:
+ * 1. setupToolbar() - إعداد Toolbar من DrawerLayout
+ * 2. onCreateOptionsMenu() - السماح للـ Fragments بإضافة عناصرها
+ * 3. onOptionsItemSelected() - تمرير أحداث القائمة للـ Fragment
+ * 4. invalidateOptionsMenu() - تحديث القائمة عند تبديل Fragment
  */
 public class MainActivity extends BaseActivity implements FontViewerFragment.OnFontChangedListener {
 
@@ -53,7 +54,7 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
         initViews();
         initFragmentsList();
         
-        // إعداد Toolbar من DrawerLayout
+        // ★★★ إعداد Toolbar - المفتاح الأول للحل ★★★
         setupToolbar();
         
         if (savedInstanceState != null) {
@@ -81,17 +82,18 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
     }
 
     /**
-     * إعداد Toolbar من DrawerLayout
+     * ★★★ إعداد Toolbar - الخطوة الأهم ★★★
      * 
-     * هذا مهم جداً: DrawerLayout في OneUI لديه toolbar داخلي،
-     * يجب أن نحصل عليه ونعيّنه كـ ActionBar للـ Activity
+     * DrawerLayout في OneUI لديه toolbar داخلي، يجب الحصول عليه
+     * وتعيينه كـ ActionBar للـ Activity حتى يمكن للـ Fragments
+     * استخدامه لإضافة عناصر القائمة
      */
     private void setupToolbar() {
         // الحصول على Toolbar من DrawerLayout
         Toolbar toolbar = mDrawerLayout.getToolbar();
         
         if (toolbar != null) {
-            // تعيينه كـ ActionBar
+            // تعيينه كـ ActionBar للـ Activity
             setSupportActionBar(toolbar);
             
             // السماح للـ Fragments بإضافة menu items
@@ -102,10 +104,11 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
     }
 
     /**
-     * هذه الدالة ضرورية لتفعيل نظام القوائم للـ Fragments
+     * ★★★ تفعيل نظام القوائم للـ Fragments ★★★
      * 
-     * عندما يحتاج Fragment لإضافة عناصر قائمة، Android يتحقق أولاً
-     * من أن Activity لديها قائمة نشطة. وجود هذه الدالة يُفعّل النظام.
+     * هذه الدالة ضرورية لتفعيل نظام القوائم. عندما يحتاج Fragment
+     * لإضافة عناصر قائمة، Android يتحقق أولاً من أن Activity
+     * لديها قائمة نشطة. وجود هذه الدالة يُفعّل النظام بالكامل.
      */
     @Override
     public boolean onCreateOptionsMenu(@NonNull Menu menu) {
@@ -118,7 +121,11 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
     }
 
     /**
-     * تمرير أحداث القائمة للـ Fragment النشط
+     * ★★★ تمرير أحداث القائمة للـ Fragment النشط ★★★
+     * 
+     * عندما يضغط المستخدم على عنصر في القائمة، نمرر الحدث
+     * للـ Fragment النشط أولاً. إذا عالجه Fragment، ننتهي.
+     * وإلا نعالجه هنا في Activity.
      */
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
@@ -211,7 +218,7 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
         transaction.commitNow();
         
         /**
-         * تحديث القائمة بعد تبديل Fragment
+         * ★★★ تحديث القائمة بعد تبديل Fragment ★★★
          * 
          * هذا مهم جداً: عند تبديل Fragment، يجب إعادة بناء القائمة
          * لتعكس عناصر Fragment الجديد. invalidateOptionsMenu() تطلب
@@ -271,7 +278,7 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
             updateDrawerTitle(mCurrentFragmentIndex);
         }
         
-        // تحديث القائمة لإظهار أيقونة المعلومات
+        // ★★★ تحديث القائمة لإظهار أيقونة المعلومات ★★★
         invalidateOptionsMenu();
     }
     
@@ -284,7 +291,7 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
             updateDrawerTitle(mCurrentFragmentIndex);
         }
         
-        // تحديث القائمة لإخفاء أيقونة المعلومات
+        // ★★★ تحديث القائمة لإخفاء أيقونة المعلومات ★★★
         invalidateOptionsMenu();
     }
 
@@ -310,4 +317,4 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
             updateDrawerTitle(position);
         }
     }
-            }
+                    }
