@@ -33,10 +33,13 @@
     <string name="navigation_drawer_close">Close navigation drawer</string>
     
     <!-- ═══════════════════════════════════════════════════════════════
-         إعدادات عامة (General Settings)
+         إعدادات عامة (General Settings) - جديد
          ═══════════════════════════════════════════════════════════════ -->
     
+    <!-- عنوان قسم General -->
     <string name="settings_general">General</string>
+    
+    <!-- نص المعاينة (Preview Text) -->
     <string name="settings_preview_text">Preview Text</string>
     <string name="settings_preview_text_summary">Edit the text shown in preview</string>
     <string name="settings_preview_text_default">The quick brown fox jumps over the lazy dog</string>
@@ -47,17 +50,22 @@
          إعدادات المظهر (Appearance Settings)
          ═══════════════════════════════════════════════════════════════ -->
     
+    <!-- عنوان قسم المظهر -->
     <string name="settings_appearance">Appearance</string>
+    
+    <!-- إعدادات اللغة -->
     <string name="settings_language">Language</string>
     <string name="settings_language_system">System</string>
     <string name="settings_language_arabic">Arabic</string>
     <string name="settings_language_english">English</string>
     
+    <!-- إعدادات الثيم -->
     <string name="settings_theme">Theme</string>
     <string name="settings_theme_system">System</string>
     <string name="settings_theme_light">Light</string>
     <string name="settings_theme_dark">Dark</string>
 
+    <!-- إعدادات الخط -->
     <string name="settings_font">Font Style</string>
     <string name="settings_font_system">System Default</string>
     <string name="settings_font_wf_regular">WF Regular</string>
@@ -67,6 +75,7 @@
          إعدادات الإشعارات (Notification Settings)
          ═══════════════════════════════════════════════════════════════ -->
     
+    <!-- عنوان قسم الإشعارات -->
     <string name="settings_notifications_section">Notifications</string>
     <string name="settings_notifications_placeholder">Notifications feature coming soon</string>
     <string name="settings_notifications">Notifications</string>
@@ -75,7 +84,7 @@
     <string name="notifications_disabled">Notifications disabled</string>
 
     <!-- ═══════════════════════════════════════════════════════════════
-         نصوص عارض الخطوط (Font Viewer) - محدثة
+         نصوص عارض الخطوط (Font Viewer)
          ═══════════════════════════════════════════════════════════════ -->
     
     <string name="font_viewer_select_font">Choose Font File</string>
@@ -90,29 +99,9 @@
     <string name="font_viewer_error_opening_picker">Unable to open file picker</string>
     <string name="font_viewer_error_loading_font">Error loading font file</string>
 
-    <!-- ★★★ نصوص جديدة: معلومات الخط ★★★ -->
-    <string name="font_viewer_info">Font Information</string>
-    <string name="font_viewer_info_title">Font Metadata</string>
-    <string name="font_viewer_no_metadata">No metadata available for this font</string>
-    <string name="font_viewer_copy_info">Copy</string>
-    <string name="font_viewer_info_copied">Font information copied to clipboard</string>
-    
-    <!-- تسميات بيانات الخط -->
-    <string name="font_metadata_full_name">Full Name</string>
-    <string name="font_metadata_family">Font Family</string>
-    <string name="font_metadata_subfamily">Subfamily (Style)</string>
-    <string name="font_metadata_version">Version</string>
-    <string name="font_metadata_designer">Designer</string>
-    <string name="font_metadata_manufacturer">Manufacturer</string>
-    <string name="font_metadata_copyright">Copyright</string>
-    <string name="font_metadata_license">License</string>
-    <string name="font_metadata_description">Description</string>
-    <string name="font_metadata_trademark">Trademark</string>
-    <string name="font_metadata_postscript">PostScript Name</string>
-    <string name="font_metadata_unique_id">Unique ID</string>
-    <string name="font_metadata_links">Links</string>
-    <string name="font_metadata_vendor_url">Vendor URL</string>
-    <string name="font_metadata_designer_url">Designer URL</string>
-    <string name="font_metadata_license_url">License URL</string>
+    <!-- Font Viewer - نصوص الشريط السفلي -->
+    <string name="font_viewer_adjust_size">Adjust font size</string>
+    <string name="font_viewer_import_font">Import font</string>
+    <string name="font_viewer_toggle_bold">Toggle bold</string>
 
 </resources>
