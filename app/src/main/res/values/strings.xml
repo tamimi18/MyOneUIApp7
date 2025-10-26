@@ -1,49 +1,89 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- App basics -->
     <string name="app_name">OneUI App</string>
     <string name="app_subtitle">Modern OneUI Experience</string>
     <string name="settings_subtitle">Customize Your App</string>
 
-    <!-- Sections -->
     <string name="title_features">Main Features</string>
     <string name="title_about">About</string>
     <string name="title_settings">Settings</string>
     <string name="swipe_up">Swipe up</string>
 
-    <!-- Drawer -->
+    <string name="feature1">Content is displayed and controlled easily</string>
+    <string name="feature2">Simple and easy to use design</string>
+    <string name="feature3">Consistent UI elements for better experience</string>
+    <string name="feature4">Supports dark mode for viewing comfort</string>
+
+    <string name="about_text">This is a demo app to showcase the OneUI design</string>
+
     <string name="drawer_home">Home</string>
     <string name="drawer_settings">Settings</string>
     <string name="drawer_font_viewer">Font Viewer</string>
 
-    <!-- Navigation -->
+    <string name="settings_info">You can control app settings from here</string>
+
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
 
-    <!-- Font viewer -->
+    <string name="settings_general">General</string>
+
+    <string name="settings_preview_text">Preview Text</string>
+    <string name="settings_preview_text_summary">Edit the text shown in preview</string>
+    <string name="settings_preview_text_default">The quick brown fox jumps over the lazy dog</string>
+    <string name="settings_preview_text_dialog_title">Edit Preview Text</string>
+    <string name="settings_preview_text_dialog_message">Enter the text you want to display in the preview</string>
+
+    <string name="settings_appearance">Appearance</string>
+
+    <!-- Language settings -->
+    <string name="settings_language">Language</string>
+    <string name="settings_language_system">System default</string>
+    <string name="settings_language_arabic">Arabic</string>
+    <string name="settings_language_english">English</string>
+
+    <!-- Theme settings -->
+    <string name="settings_theme">Theme</string>
+    <string name="settings_theme_system">System default</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
+
+    <!-- Font settings -->
+    <string name="settings_font">Font Style</string>
+    <string name="settings_font_system">System Default</string>
+    <string name="settings_font_wf_regular">WF Regular</string>
+    <string name="settings_font_samsung_one">Samsung One</string>
+
+    <string name="settings_notifications_section">Notifications</string>
+    <string name="settings_notifications_placeholder">Notifications feature coming soon</string>
+    <string name="settings_notifications">Notifications</string>
+    <string name="settings_notifications_description">Receive app notifications</string>
+    <string name="notifications_enabled">Notifications enabled</string>
+    <string name="notifications_disabled">Notifications disabled</string>
+
     <string name="font_viewer_select_font">Choose Font File</string>
     <string name="font_viewer_select_description">Select a font file from your device (.ttf or .otf)</string>
     <string name="font_viewer_no_font_selected">No font selected</string>
+
+    <string name="font_viewer_english_sentence">The quick brown fox jumps over the lazy dog.</string>
+    <string name="font_viewer_english_numbers">0 1 2 3 4 5 6 7 8 9</string>
+    <string name="font_viewer_arabic_sentence">الحب سر الوجود والجمال أساس الحياة.</string>
+    <string name="font_viewer_arabic_numbers">٠ ١ ٢ ٣ ٤ ٥ ٦ ٧ ٨ ٩</string>
+
     <string name="font_viewer_error_opening_picker">Unable to open file picker</string>
     <string name="font_viewer_error_loading_font">Error loading font file</string>
-    <string name="font_viewer_error_parsing">Error extracting font metadata</string>
-    <string name="font_viewer_no_metadata">No metadata available for this font</string>
 
-    <!-- Font info / menu -->
-    <string name="menu_font_info">Info</string>
+    <string name="font_viewer_adjust_size">Adjust font size</string>
+    <string name="font_viewer_import_font">Import font</string>
+    <string name="font_viewer_toggle_bold">Toggle bold</string>
+
     <string name="font_info_title">Font Information</string>
-    <string name="font_info_no_font_selected">No font selected</string>
-    <string name="font_info_error_extracting">Error extracting font information</string>
-
-    <!-- Font info details -->
     <string name="font_full_name">Full Name</string>
     <string name="font_family">Family Name</string>
     <string name="font_version">Version</string>
     <string name="font_designer">Designer</string>
     <string name="font_license">License</string>
     <string name="font_creation_date">Creation Date</string>
-
-    <!-- Buttons -->
-    <string name="ok">OK</string>
-    <string name="cancel">Cancel</string>
+    <string name="font_info_no_font_selected">No font selected</string>
+    <string name="font_info_error_extracting">Error extracting font data</string>
+    <string name="font_viewer_no_metadata">No metadata available for this font</string>
 </resources>
