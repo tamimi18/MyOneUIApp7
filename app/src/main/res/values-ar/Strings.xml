@@ -35,35 +35,35 @@
     <!-- إعدادات عامة -->
     <string name="settings_general">عام</string>
 
-    <!-- نص المعاينة (Preview Text) -->
+    <!-- نص المعاينة -->
     <string name="settings_preview_text">نص المعاينة</string>
     <string name="settings_preview_text_summary">عدّل النص المعروض في المعاينة</string>
     <string name="settings_preview_text_default">الحب سر الوجود والجمال أساس الحياة</string>
     <string name="settings_preview_text_dialog_title">تعديل نص المعاينة</string>
     <string name="settings_preview_text_dialog_message">أدخل النص الذي تريد عرضه في المعاينة</string>
 
-    <!-- إعدادات المظهر -->
+    <!-- المظهر -->
     <string name="settings_appearance">المظهر</string>
 
-    <!-- إعدادات اللغة -->
+    <!-- اللغة -->
     <string name="settings_language">اللغة</string>
     <string name="settings_language_system">افتراضي النظام</string>
     <string name="settings_language_arabic">العربية</string>
     <string name="settings_language_english">الإنجليزية</string>
 
-    <!-- إعدادات الثيم -->
+    <!-- الثيم -->
     <string name="settings_theme">الثيم</string>
     <string name="settings_theme_system">افتراضي النظام</string>
     <string name="settings_theme_light">فاتح</string>
     <string name="settings_theme_dark">داكن</string>
 
-    <!-- إعدادات الخط -->
+    <!-- الخط -->
     <string name="settings_font">نمط الخط</string>
     <string name="settings_font_system">الافتراضي للنظام</string>
     <string name="settings_font_wf_regular">WF عادي</string>
     <string name="settings_font_samsung_one">Samsung One</string>
 
-    <!-- إعدادات الإشعارات -->
+    <!-- الإشعارات -->
     <string name="settings_notifications_section">الإشعارات</string>
     <string name="settings_notifications_placeholder">ميزة الإشعارات قادمة قريبًا</string>
     <string name="settings_notifications">الإشعارات</string>
@@ -71,7 +71,7 @@
     <string name="notifications_enabled">الإشعارات مفعّلة</string>
     <string name="notifications_disabled">الإشعارات معطّلة</string>
 
-    <!-- نصوص عارض الخطوط (Font Viewer) -->
+    <!-- عارض الخطوط -->
     <string name="font_viewer_select_font">اختر ملف الخط</string>
     <string name="font_viewer_select_description">اختر ملف خط من جهازك (.ttf أو .otf)</string>
     <string name="font_viewer_no_font_selected">لم يتم اختيار أي خط</string>
@@ -86,16 +86,18 @@
     <string name="font_viewer_error_parsing">حدث خطأ أثناء استخراج بيانات الخط</string>
     <string name="font_viewer_no_metadata">لا توجد بيانات لهذا الخط</string>
 
-    <!-- شريط الأدوات / خيارات -->
+    <!-- شريط الأدوات / خيار المعلومات -->
     <string name="menu_font_info">معلومات</string>
+    <string name="menu_font_info_title">معلومات</string>
+
     <string name="font_metadata_title">معلومات الخط</string>
 
-    <!-- شريط الأدوات - وظائف عارض الخط -->
+    <!-- شريط أدوات - وظائف -->
     <string name="font_viewer_adjust_size">تعديل حجم الخط</string>
     <string name="font_viewer_import_font">استيراد خط</string>
     <string name="font_viewer_toggle_bold">تفعيل/إلغاء العريض</string>
 
-    <!-- معلومات الخط — حقول عرض -->
+    <!-- حقول معلومات الخط -->
     <string name="font_info_title">معلومات الخط</string>
     <string name="font_full_name">الاسم الكامل</string>
     <string name="font_family">اسم العائلة</string>
@@ -104,7 +106,7 @@
     <string name="font_license">الرخصة</string>
     <string name="font_creation_date">تاريخ الإنشاء</string>
 
-    <!-- عامة مساعدة -->
+    <!-- عامة -->
     <string name="ok">حسناً</string>
     <string name="cancel">إلغاء</string>
 </resources>
