@@ -32,6 +32,15 @@ import java.io.RandomAccessFile;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * FontViewerFragment - النسخة المحدثة مع نظام القوائم الكامل
+ * 
+ * التغييرات الرئيسية:
+ * 1. setHasOptionsMenu(true) في onCreate()
+ * 2. onCreateOptionsMenu() لإضافة أيقونة المعلومات
+ * 3. التحكم بظهور الأيقونة حسب حالة الخط
+ * 4. استدعاء invalidateOptionsMenu() عند التغييرات
+ */
 public class FontViewerFragment extends Fragment implements SharedPreferences.OnSharedPreferenceChangeListener {
 
     private static final String KEY_FONT_PATH = "font_path";
@@ -82,7 +91,8 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         
-        // ★★★ الإصلاح الأول: تفعيل Options Menu ★★★
+        // ★★★ تفعيل Options Menu ★★★
+        // هذا السطر ضروري ليعلم Android أن Fragment يريد إضافة عناصر للقائمة
         setHasOptionsMenu(true);
 
         fontPickerLauncher = registerForActivityResult(
@@ -99,21 +109,36 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
         );
     }
     
+    /**
+     * ★★★ إنشاء القائمة (Options Menu) ★★★
+     * 
+     * هنا نضيف أيقونة المعلومات (ℹ️) للقائمة.
+     * الأيقونة تظهر فقط عندما يكون هناك خط محمّل.
+     */
     @Override
     public void onCreateOptionsMenu(@NonNull Menu menu, @NonNull MenuInflater inflater) {
         super.onCreateOptionsMenu(menu, inflater);
-        // ★★★ الإصلاح الثاني: مسح القائمة القديمة أولاً ★★★
+        
+        // ★★★ مسح القائمة القديمة أولاً لتجنب التكرار ★★★
         menu.clear();
+        
+        // إضافة عناصر القائمة من ملف XML
         inflater.inflate(R.menu.menu_font_viewer, menu);
         
-        // ★★★ الإصلاح الثالث: التحكم بظهور الأيقونة ★★★
+        // ★★★ التحكم بظهور أيقونة المعلومات ★★★
         MenuItem metadataItem = menu.findItem(R.id.menu_font_metadata);
         if (metadataItem != null) {
+            // الأيقونة تظهر فقط إذا كان هناك خط محمّل
             boolean shouldShow = currentFontPath != null && !currentFontPath.isEmpty();
             metadataItem.setVisible(shouldShow);
         }
     }
     
+    /**
+     * ★★★ معالجة الضغط على عناصر القائمة ★★★
+     * 
+     * عندما يضغط المستخدم على أيقونة المعلومات، نعرض Dialog
+     */
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         if (item.getItemId() == R.id.menu_font_metadata) {
@@ -166,7 +191,8 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
             updatePreviewTexts();
         }
         
-        // ★★★ الإصلاح الرابع: تحديث القائمة عند الظهور ★★★
+        // ★★★ تحديث القائمة عند الظهور ★★★
+        // هذا يضمن أن الأيقونة تظهر/تختفي بشكل صحيح
         requireActivity().invalidateOptionsMenu();
     }
 
@@ -427,7 +453,8 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
 
                 applyFontToPreviewTexts();
                 
-                // ★★★ الإصلاح الخامس: تحديث القائمة بعد تحميل الخط ★★★
+                // ★★★ تحديث القائمة بعد تحميل الخط ★★★
+                // هذا يجعل أيقونة المعلومات تظهر تلقائياً
                 requireActivity().invalidateOptionsMenu();
 
                 if (fontChangedListener != null) {
@@ -464,7 +491,8 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
         previewSentence.setTypeface(defaultTypeface);
         previewNumbers.setTypeface(defaultTypeface);
         
-        // ★★★ الإصلاح السادس: تحديث القائمة بعد إزالة الخط ★★★
+        // ★★★ تحديث القائمة بعد إزالة الخط ★★★
+        // هذا يجعل أيقونة المعلومات تختفي تلقائياً
         requireActivity().invalidateOptionsMenu();
 
         if (fontChangedListener != null) {
@@ -523,6 +551,11 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
         }
     }
     
+    /**
+     * ★★★ عرض Dialog بمعلومات الخط ★★★
+     * 
+     * تُستدعى عندما يضغط المستخدم على أيقونة المعلومات
+     */
     private void showFontMetadata() {
         if (currentFontMetadata == null || currentFontMetadata.isEmpty()) {
             Toast.makeText(requireContext(), 
