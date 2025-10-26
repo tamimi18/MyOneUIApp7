@@ -32,7 +32,11 @@
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
     
-    <!-- إعدادات عامة (General Settings) -->
+    <!-- ═══════════════════════════════════════════════════════════════
+         إعدادات عامة (General Settings) - جديد
+         ═══════════════════════════════════════════════════════════════ -->
+    
+    <!-- عنوان قسم General -->
     <string name="settings_general">General</string>
     
     <!-- نص المعاينة (Preview Text) -->
@@ -42,7 +46,11 @@
     <string name="settings_preview_text_dialog_title">Edit Preview Text</string>
     <string name="settings_preview_text_dialog_message">Enter the text you want to display in the preview</string>
     
-    <!-- إعدادات المظهر (Appearance Settings) -->
+    <!-- ═══════════════════════════════════════════════════════════════
+         إعدادات المظهر (Appearance Settings)
+         ═══════════════════════════════════════════════════════════════ -->
+    
+    <!-- عنوان قسم المظهر -->
     <string name="settings_appearance">Appearance</string>
     
     <!-- إعدادات اللغة -->
@@ -63,7 +71,11 @@
     <string name="settings_font_wf_regular">WF Regular</string>
     <string name="settings_font_samsung_one">Samsung One</string>
 
-    <!-- إعدادات الإشعارات (Notification Settings) -->
+    <!-- ═══════════════════════════════════════════════════════════════
+         إعدادات الإشعارات (Notification Settings)
+         ═══════════════════════════════════════════════════════════════ -->
+    
+    <!-- عنوان قسم الإشعارات -->
     <string name="settings_notifications_section">Notifications</string>
     <string name="settings_notifications_placeholder">Notifications feature coming soon</string>
     <string name="settings_notifications">Notifications</string>
@@ -71,7 +83,10 @@
     <string name="notifications_enabled">Notifications enabled</string>
     <string name="notifications_disabled">Notifications disabled</string>
 
-    <!-- نصوص عارض الخطوط (Font Viewer) -->
+    <!-- ═══════════════════════════════════════════════════════════════
+         نصوص عارض الخطوط (Font Viewer)
+         ═══════════════════════════════════════════════════════════════ -->
+    
     <string name="font_viewer_select_font">Choose Font File</string>
     <string name="font_viewer_select_description">Select a font file from your device (.ttf or .otf)</string>
     <string name="font_viewer_no_font_selected">No font selected</string>
@@ -88,22 +103,5 @@
     <string name="font_viewer_adjust_size">Adjust font size</string>
     <string name="font_viewer_import_font">Import font</string>
     <string name="font_viewer_toggle_bold">Toggle bold</string>
-
-    <!-- Font Metadata -->
-    <string name="font_metadata_title">Font Information</string>
-    <string name="font_metadata_not_available">No font metadata available</string>
-    <string name="font_metadata_font_name">Font Name</string>
-    <string name="font_metadata_family">Font Family</string>
-    <string name="font_metadata_subfamily">Subfamily</string>
-    <string name="font_metadata_postscript">PostScript Name</string>
-    <string name="font_metadata_version">Version</string>
-    <string name="font_metadata_designer">Designer</string>
-    <string name="font_metadata_manufacturer">Manufacturer</string>
-    <string name="font_metadata_copyright">Copyright</string>
-    <string name="font_metadata_license">License</string>
-    <string name="font_metadata_license_url">License URL</string>
-    <string name="font_metadata_vendor_url">Vendor URL</string>
-    <string name="font_metadata_file_size">File Size</string>
-    <string name="font_metadata_file_path">File Path</string>
 
 </resources>
