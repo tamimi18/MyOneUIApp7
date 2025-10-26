@@ -3,6 +3,8 @@ package com.example.oneuiapp;
 import android.content.Context;
 import android.os.Build;
 import android.os.Bundle;
+import android.view.Menu;
+import android.view.MenuItem;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
@@ -14,12 +16,18 @@ import java.util.List;
 import dev.oneuiproject.oneui.layout.DrawerLayout;
 
 /**
- * MainActivity - النسخة المصححة مع إزالة المراجع غير المستخدمة
+ * MainActivity - النسخة المصححة مع دعم كامل لقوائم Fragments
  * 
  * التحديث الجديد:
- * - تم حذف TAG_SETTINGS لأنه لم يعد مستخدماً
- * - تم تبسيط الكود وتنظيفه من المراجع القديمة
- * - جميع الوظائف تعمل بشكل صحيح مع PreferenceFragmentCompat
+ * - إضافة onCreateOptionsMenu() لدعم قوائم Fragments
+ * - إضافة onPrepareOptionsMenu() للسماح للـ Fragment بتحديث القائمة
+ * - إضافة onOptionsItemSelected() لتمرير النقرات للـ Fragment
+ * 
+ * شرح المشكلة:
+ * عندما يكون Fragment يريد إضافة أيقونات للـ Toolbar، يجب على
+ * Activity الأب أن "يسمح" بذلك من خلال تفعيل نظام القوائم.
+ * بدون هذه الدوال، حتى لو كتب Fragment كل الكود الصحيح،
+ * لن تظهر الأيقونات لأن Activity لا يستدعي دوال Fragment.
  */
 public class MainActivity extends BaseActivity implements FontViewerFragment.OnFontChangedListener {
 
@@ -30,16 +38,9 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
     private int mCurrentFragmentIndex = 0;
     
     private static final String KEY_CURRENT_FRAGMENT = "current_fragment_index";
-    
-    // ★★★ تم حذف TAG_SETTINGS القديم لأنه لم يعد مستخدماً ★★★
     private static final String TAG_HOME = "fragment_home";
     private static final String TAG_FONT_VIEWER = "fragment_font_viewer";
-    // لاحظ: لم نعد بحاجة لـ TAG منفصل لـ SettingsFragment
-    // لأنها الآن PreferenceFragment بدون layout مخصص
     
-    /**
-     * متغيرات لحفظ معلومات الخط الحالي
-     */
     private String currentFontRealName;
     private String currentFontFileName;
 
@@ -61,7 +62,7 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
             
             FragmentManager fm = getSupportFragmentManager();
             Fragment homeFragment = fm.findFragmentByTag(TAG_HOME);
-            Fragment settingsFragment = fm.findFragmentByTag("settings"); // اسم بسيط
+            Fragment settingsFragment = fm.findFragmentByTag("settings");
             Fragment fontViewerFragment = fm.findFragmentByTag(TAG_FONT_VIEWER);
             
             if (homeFragment != null && settingsFragment != null && fontViewerFragment != null) {
@@ -97,7 +98,6 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
         FragmentManager fm = getSupportFragmentManager();
         FragmentTransaction transaction = fm.beginTransaction();
         
-        // إضافة Fragments مع tags مبسطة
         transaction.add(R.id.main_content, mFragments.get(0), TAG_HOME);
         transaction.add(R.id.main_content, mFragments.get(1), "settings");
         transaction.hide(mFragments.get(1));
@@ -119,6 +119,11 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
                         mCurrentFragmentIndex = position;
                         showFragmentFast(position);
                         updateDrawerTitle(position);
+                        
+                        // ★★★ هذا السطر مهم جداً! ★★★
+                        // عند تغيير Fragment، نحدّث القائمة لإظهار أيقونات Fragment الجديد
+                        invalidateOptionsMenu();
+                        
                         return true;
                     }
                     return false;
@@ -152,8 +157,75 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
     }
 
     /**
-     * تحديث عنوان الدرج بناءً على Fragment المعروض
+     * ★★★ دالة جديدة: إنشاء قائمة Activity ★★★
+     * 
+     * هذه الدالة مهمة جداً لعمل قوائم Fragments!
+     * 
+     * كيف يعمل نظام القوائم في Android؟
+     * 1. عندما يريد Android عرض القائمة، يستدعي onCreateOptionsMenu()
+     * 2. نحن هنا نستدعي super.onCreateOptionsMenu(menu) أولاً
+     * 3. الـ super تلقائياً تستدعي onCreateOptionsMenu() لكل Fragment نشط
+     * 4. Fragment يضيف أيقوناته للقائمة
+     * 5. النتيجة: القائمة تحتوي على عناصر Activity + عناصر Fragment
+     * 
+     * لماذا نُرجع true؟
+     * لأننا نريد عرض القائمة. لو أرجعنا false، لن تظهر القائمة أبداً.
      */
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // استدعاء super مهم جداً! هو الذي يسمح للـ Fragment بإضافة عناصره
+        super.onCreateOptionsMenu(menu);
+        
+        // يمكنك هنا إضافة عناصر خاصة بـ Activity إذا أردت
+        // مثلاً: menu.add(...)
+        
+        return true;
+    }
+
+    /**
+     * ★★★ دالة جديدة: تحديث القائمة ★★★
+     * 
+     * هذه الدالة تُستدعى في حالات معينة:
+     * - عند استدعاء invalidateOptionsMenu()
+     * - قبل عرض القائمة
+     * - عند تغيير Fragment
+     * 
+     * الفائدة:
+     * Fragment يمكنه تحديث حالة عناصره هنا
+     * (مثل تفعيل/تعطيل الأيقونات، تغيير النص، إلخ)
+     */
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        // super تستدعي onPrepareOptionsMenu() للـ Fragment النشط
+        super.onPrepareOptionsMenu(menu);
+        return true;
+    }
+
+    /**
+     * ★★★ دالة جديدة: معالجة النقر على عناصر القائمة ★★★
+     * 
+     * عندما يضغط المستخدم على عنصر في القائمة:
+     * 1. Android يستدعي هذه الدالة
+     * 2. نحن نستدعي super.onOptionsItemSelected(item)
+     * 3. الـ super تمرر الحدث للـ Fragment النشط
+     * 4. Fragment يعالج الحدث في onOptionsItemSelected() الخاص به
+     * 
+     * إذا لم نستدعي super، Fragment لن يستقبل أي أحداث نقر!
+     */
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        // تمرير الحدث للـ Fragment أولاً
+        // إذا عالج Fragment الحدث، سيُرجع true ونتوقف هنا
+        if (super.onOptionsItemSelected(item)) {
+            return true;
+        }
+        
+        // إذا لم يعالج Fragment الحدث، يمكننا معالجته هنا في Activity
+        // (حالياً لا يوجد عناصر خاصة بـ Activity)
+        
+        return false;
+    }
+
     private void updateDrawerTitle(int fragmentIndex) {
         if (mDrawerLayout == null) {
             return;
@@ -163,17 +235,14 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
         String subtitle;
         
         if (fragmentIndex == 0) {
-            // الشاشة الرئيسية (HomeFragment)
             title = getString(R.string.app_name);
             subtitle = getString(R.string.app_subtitle);
             
         } else if (fragmentIndex == 1) {
-            // شاشة الإعدادات (SettingsFragment)
             title = getString(R.string.title_settings);
             subtitle = getString(R.string.settings_subtitle);
             
         } else if (fragmentIndex == 2) {
-            // شاشة عارض الخطوط (FontViewerFragment)
             FontViewerFragment fontFragment = (FontViewerFragment) mFragments.get(2);
             
             if (fontFragment != null && fontFragment.hasFontSelected()) {
@@ -199,9 +268,6 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
         mDrawerLayout.setExpandedSubtitle(subtitle);
     }
 
-    /**
-     * Callbacks من FontViewerFragment
-     */
     @Override
     public void onFontChanged(String fontRealName, String fontFileName) {
         this.currentFontRealName = fontRealName;
@@ -242,6 +308,9 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
             mCurrentFragmentIndex = position;
             mDrawerAdapter.setSelectedItem(position);
             updateDrawerTitle(position);
+            
+            // تحديث القائمة عند تغيير الاختيار
+            invalidateOptionsMenu();
         }
     }
-}
+    }
