@@ -1,3 +1,4 @@
+/* START OF FILE: app/src/main/java/com/example/FontViewerFragment.java */
 package com.example.oneuiapp;
 
 import android.app.Activity;
@@ -36,8 +37,11 @@ import java.util.TimeZone;
 import dev.oneuiproject.oneui.widget.Toast;
 
 /**
- * FontViewerFragment - عارض الخطوط مع تحديث تلقائي لنص المعاينة
- * تم تصحيح سطر mimeTypes الذي تسبّب في خطأ التجميع (تمت إزالة انقسام السلسلة).
+ * Modified FontViewerFragment (package com.example)
+ * Added public accessor methods required by MainActivity:
+ * - hasFontSelected()
+ * - getCurrentFontRealName()
+ * - getCurrentFontFileName()
  */
 public class FontViewerFragment extends Fragment
         implements SharedPreferences.OnSharedPreferenceChangeListener {
@@ -59,7 +63,6 @@ public class FontViewerFragment extends Fragment
     private String currentFontRealName;
     private Typeface currentTypeface;
 
-    // حفظ آخر نص معاينة لمعرفة إذا تغير
     private String lastPreviewText = "";
     private SharedPreferences sharedPreferences;
 
@@ -88,7 +91,6 @@ public class FontViewerFragment extends Fragment
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // Enable options menu in this fragment
         setHasOptionsMenu(true);
 
         fontPickerLauncher = registerForActivityResult(
@@ -136,25 +138,18 @@ public class FontViewerFragment extends Fragment
             loadLastUsedFont();
         }
 
-        // تحديث نص المعاينة لأول مرة
         updatePreviewTexts();
     }
 
     @Override
     public void onResume() {
         super.onResume();
-
-        // تسجيل المستمع عند إظهار الشاشة
         sharedPreferences =
             PreferenceManager.getDefaultSharedPreferences(requireContext());
         sharedPreferences.registerOnSharedPreferenceChangeListener(this);
 
-        // الحصول على نص المعاينة الحالي من الإعدادات
         String currentPreviewText = SettingsHelper.getPreviewText(requireContext());
-
-        // التحقق: هل تغير النص منذ آخر مرة؟
         if (!currentPreviewText.equals(lastPreviewText)) {
-            // نعم تغير! نحدّث المعاينة
             lastPreviewText = currentPreviewText;
             updatePreviewTexts();
         }
@@ -177,25 +172,13 @@ public class FontViewerFragment extends Fragment
         }
     }
 
-    /**
-     * تحديث نصوص المعاينة بالنص المحفوظ في الإعدادات
-     * مع تطبيق الخط المخصص إذا كان موجوداً
-     */
     private void updatePreviewTexts() {
         if (previewSentence == null) {
             return;
         }
-
-        // الحصول على نص المعاينة المخصص من الإعدادات
         String previewText = SettingsHelper.getPreviewText(requireContext());
-
-        // تطبيق النص على المعاينة
         previewSentence.setText(previewText);
-
-        // الأرقام تبقى كما هي (افتراضية)
         previewNumbers.setText(getString(R.string.font_viewer_english_numbers));
-
-        // تطبيق الخط المخصص إذا كان موجوداً
         if (currentTypeface != null) {
             applyFontToPreviewTexts();
         }
@@ -257,9 +240,6 @@ public class FontViewerFragment extends Fragment
         }
     }
 
-    /**
-     * استخراج الاسم الكامل للخط (Full Name) من جدول الأسماء (name table) في ملف الخط
-     */
     private String extractFontRealName(File fontFile) {
         try (RandomAccessFile raf = new RandomAccessFile(fontFile, "r")) {
             raf.seek(0);
@@ -465,8 +445,6 @@ public class FontViewerFragment extends Fragment
         }
     }
 
-    // ﹣﹣﹣﹣﹣ Data for fragment preservation ﹣﹣﹣﹣﹣
-
     @Override
     public void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
@@ -475,13 +453,14 @@ public class FontViewerFragment extends Fragment
         outState.putString(KEY_FONT_REAL_NAME, currentFontRealName);
     }
 
-    // ﹣﹣﹣﹣﹣ Fragment UI ﹣﹣﹣﹣﹣
-
     @Override
     public void onCreateOptionsMenu(@NonNull Menu menu, @NonNull MenuInflater inflater) {
         super.onCreateOptionsMenu(menu, inflater);
-        // Inflate the menu with the info icon
-        inflater.inflate(R.menu.info_menu, menu);
+        try {
+            inflater.inflate(R.menu.info_menu, menu);
+        } catch (Exception e) {
+            // ignore if menu not present
+        }
     }
 
     @Override
@@ -493,9 +472,6 @@ public class FontViewerFragment extends Fragment
         return super.onOptionsItemSelected(item);
     }
 
-    /**
-     * Shows a dialog with the font metadata: Full Name, Family, Version, Designer, License, Creation Date.
-     */
     private void showFontInfoDialog() {
         if (currentFontPath == null || currentFontPath.isEmpty()) {
             Toast.makeText(requireContext(),
@@ -512,7 +488,6 @@ public class FontViewerFragment extends Fragment
                 return;
             }
             try (RandomAccessFile raf = new RandomAccessFile(fontFile, "r")) {
-                // Read SFNT header
                 raf.seek(0);
                 int sfntVersion = raf.readInt();
                 if (sfntVersion != 0x00010000 && sfntVersion != 0x4F54544F) {
@@ -641,4 +616,28 @@ public class FontViewerFragment extends Fragment
             e.printStackTrace();
         }
     }
-                 }
+
+    // -------- Public accessor methods required by MainActivity --------
+
+    /**
+     * Returns true if a font is currently selected/loaded.
+     */
+    public boolean hasFontSelected() {
+        return currentFontPath != null && !currentFontPath.isEmpty();
+    }
+
+    /**
+     * Returns the font's real/full name if available.
+     */
+    public String getCurrentFontRealName() {
+        return currentFontRealName;
+    }
+
+    /**
+     * Returns the originally selected font file name if available.
+     */
+    public String getCurrentFontFileName() {
+        return currentFontFileName;
+    }
+}
+/* END OF FILE */
