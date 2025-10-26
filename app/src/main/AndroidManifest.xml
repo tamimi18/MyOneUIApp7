@@ -2,32 +2,53 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- إضافة صلاحيات التخزين لحفظ ملفات الأخطاء -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+
     <application
         android:name=".MyApplication"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
-        android:supportsRtl="true"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:theme="@style/OneUITheme"
-        tools:ignore="GoogleAppIndexingWarning">
+        android:supportsRtl="true"
+        android:hardwareAccelerated="true"
+        tools:targetApi="34">
 
-        <!-- MainActivity - الشاشة الرئيسية -->
+        <meta-data
+            android:name="SamsungBasicInteraction"
+            android:value="SEP10" />
+
+        <meta-data
+            android:name="com.samsung.android.icon_container.has_icon_container"
+            android:value="true" />
+        <meta-data
+            android:name="com.samsung.android.icon_container.feature_appicon"
+            android:value="ADAPTIVEICON_SHADOW" />
+
+        <meta-data
+            android:name="theming-meta"
+            android:value="meta_998_sesl_app" />
+
+        <meta-data
+            android:name="theming-meta-xml"
+            android:value="@xml/meta_998_sesl_app" />
+
+
         <activity
             android:name=".MainActivity"
-            android:configChanges="orientation|screenLayout|screenSize|smallestScreenSize"
             android:exported="true"
-            android:launchMode="singleTop">
+            android:theme="@style/OneUITheme">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
-        <!-- FontViewerActivity - شاشة عارض الخطوط -->
-        <activity
-            android:name=".FontViewerActivity"
-            android:configChanges="orientation|screenLayout|screenSize|smallestScreenSize"
-            android:exported="false" />
 
     </application>
 
