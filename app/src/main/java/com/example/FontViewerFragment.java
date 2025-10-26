@@ -30,10 +30,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * FontViewerFragment - النسخة المبسطة (بدون onCreateOptionsMenu)
+ * FontViewerFragment - النسخة المصلحة نهائياً
  * 
- * التغيير الجذري: Fragment لا يدير القائمة بنفسه
- * MainActivity هي المسؤولة عن كل شيء متعلق بالقائمة
+ * الإصلاح: عند تحميل آخر خط محفوظ، نُخبر MainActivity فوراً
+ * حتى تظهر الأيقونة مباشرة عند فتح الشاشة
  */
 public class FontViewerFragment extends Fragment implements SharedPreferences.OnSharedPreferenceChangeListener {
 
@@ -84,8 +84,6 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        
-        // ★★★ لا نستدعي setHasOptionsMenu() - MainActivity ستدير القائمة ★★★
 
         fontPickerLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
@@ -481,6 +479,16 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
             .apply();
     }
 
+    /**
+     * ★★★ الإصلاح الحاسم - تحميل آخر خط مستخدم وإخبار MainActivity ★★★
+     * 
+     * المشكلة القديمة:
+     * كنا نحمّل الخط من الذاكرة، لكن لا نُخبر MainActivity
+     * النتيجة: الأيقونة لا تظهر عند فتح الشاشة
+     * 
+     * الحل:
+     * بعد تحميل الخط بنجاح، نستدعي onFontChanged() فوراً
+     */
     private void loadLastUsedFont() {
         android.content.SharedPreferences prefs =
             requireContext().getSharedPreferences("FontViewerPrefs", Context.MODE_PRIVATE);
@@ -490,12 +498,20 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
         String lastRealName = prefs.getString(PREF_LAST_FONT_REAL_NAME, null);
 
         if (lastPath != null && !lastPath.isEmpty()) {
+            // تحميل الخط من المسار المحفوظ
             loadFontFromPath(lastPath, lastFileName, lastRealName);
+            
+            // ★★★ هذا هو الإصلاح - أخبر MainActivity فوراً ★★★
+            // ملاحظة: loadFontFromPath() تستدعي onFontChanged() بالفعل
+            // لكننا نتأكد هنا لضمان ظهور الأيقونة حتى لو حدث خطأ
+            if (currentTypeface != null && fontChangedListener != null) {
+                fontChangedListener.onFontChanged(lastRealName, lastFileName);
+            }
         }
     }
     
     /**
-     * ★★★ دالة عامة تُستدعى من MainActivity ★★★
+     * دالة عامة تُستدعى من MainActivity
      * عندما يضغط المستخدم على أيقونة المعلومات
      */
     public void showMetadataDialog() {
@@ -546,4 +562,4 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
     public boolean hasFontSelected() {
         return currentFontPath != null && !currentFontPath.isEmpty();
     }
-                    }
+    }
