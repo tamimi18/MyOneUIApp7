@@ -8,6 +8,9 @@ import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
@@ -26,11 +29,9 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.RandomAccessFile;
+import java.util.HashMap;
+import java.util.Map;
 
-/**
- * FontViewerFragment - عارض الخطوط مع تحديث تلقائي لنص المعاينة
- * تم تصحيح سطر mimeTypes الذي تسبّب في خطأ التجميع (تمت إزالة انقسام السلسلة).
- */
 public class FontViewerFragment extends Fragment implements SharedPreferences.OnSharedPreferenceChangeListener {
 
     private static final String KEY_FONT_PATH = "font_path";
@@ -49,8 +50,10 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
     private String currentFontFileName;
     private String currentFontRealName;
     private Typeface currentTypeface;
+    
+    // بيانات meta-data للخط الحالي
+    private Map<String, String> currentFontMetadata;
 
-    // حفظ آخر نص معاينة لمعرفة إذا تغير
     private String lastPreviewText = "";
     private SharedPreferences sharedPreferences;
 
@@ -79,6 +82,9 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        
+        // ★ تفعيل Options Menu
+        setHasOptionsMenu(true);
 
         fontPickerLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
@@ -93,18 +99,37 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
             }
         );
     }
+    
+    @Override
+    public void onCreateOptionsMenu(@NonNull Menu menu, @NonNull MenuInflater inflater) {
+        super.onCreateOptionsMenu(menu, inflater);
+        inflater.inflate(R.menu.menu_font_viewer, menu);
+        
+        // إخفاء الأيقونة إذا لم يكن هناك خط محمّل
+        MenuItem metadataItem = menu.findItem(R.id.menu_font_metadata);
+        if (metadataItem != null) {
+            metadataItem.setVisible(currentFontPath != null && !currentFontPath.isEmpty());
+        }
+    }
+    
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        if (item.getItemId() == R.id.menu_font_metadata) {
+            showFontMetadata();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
 
     @Nullable
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable
-                                ViewGroup container,
-                                @Nullable Bundle savedInstanceState) {
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
+                             @Nullable Bundle savedInstanceState) {
         return inflater.inflate(R.layout.fragment_font_viewer, container, false);
     }
 
     @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle
-                                savedInstanceState) {
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
         initViews(view);
@@ -112,20 +137,16 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
 
         if (savedInstanceState != null) {
             currentFontPath = savedInstanceState.getString(KEY_FONT_PATH);
-            currentFontFileName =
-                savedInstanceState.getString(KEY_FONT_FILE_NAME);
-            currentFontRealName =
-                savedInstanceState.getString(KEY_FONT_REAL_NAME);
+            currentFontFileName = savedInstanceState.getString(KEY_FONT_FILE_NAME);
+            currentFontRealName = savedInstanceState.getString(KEY_FONT_REAL_NAME);
 
             if (currentFontPath != null && !currentFontPath.isEmpty()) {
-                loadFontFromPath(currentFontPath, currentFontFileName,
-                                 currentFontRealName);
+                loadFontFromPath(currentFontPath, currentFontFileName, currentFontRealName);
             }
         } else {
             loadLastUsedFont();
         }
 
-        // تحديث نص المعاينة لأول مرة
         updatePreviewTexts();
     }
 
@@ -133,16 +154,12 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
     public void onResume() {
         super.onResume();
 
-        // تسجيل المستمع عند إظهار الشاشة
         sharedPreferences = PreferenceManager.getDefaultSharedPreferences(requireContext());
         sharedPreferences.registerOnSharedPreferenceChangeListener(this);
 
-        // الحصول على نص المعاينة الحالي من الإعدادات
         String currentPreviewText = SettingsHelper.getPreviewText(requireContext());
 
-        // التحقق: هل تغير النص منذ آخر مرة؟
         if (!currentPreviewText.equals(lastPreviewText)) {
-            // نعم تغير! نحدّث المعاينة
             lastPreviewText = currentPreviewText;
             updatePreviewTexts();
         }
@@ -165,25 +182,15 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
         }
     }
 
-    /**
-     * تحديث نصوص المعاينة بالنص المحفوظ في الإعدادات
-     * مع تطبيق الخط المخصص إذا كان موجوداً
-     */
     private void updatePreviewTexts() {
         if (previewSentence == null) {
             return;
         }
 
-        // الحصول على نص المعاينة المخصص من الإعدادات
         String previewText = SettingsHelper.getPreviewText(requireContext());
-
-        // تطبيق النص على المعاينة
         previewSentence.setText(previewText);
-
-        // الأرقام تبقى كما هي (افتراضية)
         previewNumbers.setText(getString(R.string.font_viewer_english_numbers));
 
-        // تطبيق الخط المخصص إذا كان موجوداً
         if (currentTypeface != null) {
             applyFontToPreviewTexts();
         }
@@ -233,7 +240,13 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
                 }
             }
 
-            String realName = extractFontRealName(fontFile);
+            // استخراج البيانات الكاملة
+            currentFontMetadata = extractFontMetadata(fontFile);
+            String realName = currentFontMetadata.get("Font Name");
+            if (realName == null || realName.equals("Unknown Font")) {
+                realName = currentFontMetadata.get("Font Family");
+            }
+            
             loadFontFromPath(fontFile.getAbsolutePath(), fileName, realName);
             saveLastUsedFont(fontFile.getAbsolutePath(), fileName, realName);
 
@@ -245,13 +258,19 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
         }
     }
 
-    private String extractFontRealName(File fontFile) {
+    /**
+     * استخراج بيانات meta-data كاملة من ملف الخط
+     */
+    private Map<String, String> extractFontMetadata(File fontFile) {
+        Map<String, String> metadata = new HashMap<>();
+        
         try (RandomAccessFile raf = new RandomAccessFile(fontFile, "r")) {
             raf.seek(0);
             int sfntVersion = raf.readInt();
 
             if (sfntVersion != 0x00010000 && sfntVersion != 0x4F54544F) {
-                return "Unknown Font";
+                metadata.put("Font Name", "Unknown Font");
+                return metadata;
             }
 
             int numTables = raf.readUnsignedShort();
@@ -275,7 +294,8 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
             }
 
             if (nameTableOffset == -1) {
-                return "Unknown Font";
+                metadata.put("Font Name", "Unknown Font");
+                return metadata;
             }
 
             raf.seek(nameTableOffset);
@@ -283,9 +303,7 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
             int count = raf.readUnsignedShort();
             int stringOffset = raf.readUnsignedShort();
 
-            String fontName = null;
-            String familyName = null;
-
+            // استخراج جميع البيانات المهمة
             for (int i = 0; i < count; i++) {
                 int platformID = raf.readUnsignedShort();
                 raf.readUnsignedShort();
@@ -294,8 +312,7 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
                 int length = raf.readUnsignedShort();
                 int offset = raf.readUnsignedShort();
 
-                if ((nameID == 4 || nameID == 1) && (platformID == 3 ||
-                                                    platformID == 1)) {
+                if ((platformID == 3 || platformID == 1)) {
                     long currentPos = raf.getFilePointer();
                     raf.seek(nameTableOffset + stringOffset + offset);
 
@@ -309,27 +326,80 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
                         name = new String(nameBytes, "US-ASCII");
                     }
 
-                    if (nameID == 4) {
-                        fontName = name;
-                    } else if (nameID == 1 && familyName == null) {
-                        familyName = name;
+                    // تخزين البيانات حسب nameID
+                    switch (nameID) {
+                        case 0:
+                            if (!metadata.containsKey("Copyright")) {
+                                metadata.put("Copyright", name);
+                            }
+                            break;
+                        case 1:
+                            if (!metadata.containsKey("Font Family")) {
+                                metadata.put("Font Family", name);
+                            }
+                            break;
+                        case 2:
+                            if (!metadata.containsKey("Subfamily")) {
+                                metadata.put("Subfamily", name);
+                            }
+                            break;
+                        case 4:
+                            if (!metadata.containsKey("Font Name")) {
+                                metadata.put("Font Name", name);
+                            }
+                            break;
+                        case 5:
+                            if (!metadata.containsKey("Version")) {
+                                metadata.put("Version", name);
+                            }
+                            break;
+                        case 6:
+                            if (!metadata.containsKey("PostScript Name")) {
+                                metadata.put("PostScript Name", name);
+                            }
+                            break;
+                        case 8:
+                            if (!metadata.containsKey("Manufacturer")) {
+                                metadata.put("Manufacturer", name);
+                            }
+                            break;
+                        case 9:
+                            if (!metadata.containsKey("Designer")) {
+                                metadata.put("Designer", name);
+                            }
+                            break;
+                        case 11:
+                            if (!metadata.containsKey("Vendor URL")) {
+                                metadata.put("Vendor URL", name);
+                            }
+                            break;
+                        case 13:
+                            if (!metadata.containsKey("License")) {
+                                metadata.put("License", name);
+                            }
+                            break;
+                        case 14:
+                            if (!metadata.containsKey("License URL")) {
+                                metadata.put("License URL", name);
+                            }
+                            break;
                     }
 
                     raf.seek(currentPos);
-
-                    if (fontName != null) {
-                        break;
-                    }
                 }
             }
 
-            return fontName != null ? fontName : (familyName != null ?
-                    familyName : "Unknown Font");
+            // إضافة معلومات الملف
+            metadata.put("File Size", formatFileSize(fontFile.length()));
+            metadata.put("File Path", fontFile.getAbsolutePath());
 
         } catch (Exception e) {
             e.printStackTrace();
-            return "Unknown Font";
+            metadata.put("Font Name", "Unknown Font");
+            metadata.put("Error", "Failed to read font metadata");
         }
+
+        return metadata;
     }
 
     private long readUInt32(RandomAccessFile raf) throws Exception {
@@ -352,8 +422,16 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
                 currentFontPath = path;
                 currentFontFileName = fileName;
                 currentFontRealName = realName;
+                
+                // استخراج البيانات إذا لم تكن موجودة
+                if (currentFontMetadata == null) {
+                    currentFontMetadata = extractFontMetadata(fontFile);
+                }
 
                 applyFontToPreviewTexts();
+                
+                // ★ تحديث Menu لإظهار الأيقونة
+                requireActivity().invalidateOptionsMenu();
 
                 if (fontChangedListener != null) {
                     fontChangedListener.onFontChanged(realName, fileName);
@@ -383,10 +461,14 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
         currentFontPath = null;
         currentFontFileName = null;
         currentFontRealName = null;
+        currentFontMetadata = null;
 
         Typeface defaultTypeface = Typeface.DEFAULT;
         previewSentence.setTypeface(defaultTypeface);
         previewNumbers.setTypeface(defaultTypeface);
+        
+        // ★ تحديث Menu لإخفاء الأيقونة
+        requireActivity().invalidateOptionsMenu();
 
         if (fontChangedListener != null) {
             fontChangedListener.onFontCleared();
@@ -441,6 +523,31 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
 
         if (lastPath != null && !lastPath.isEmpty()) {
             loadFontFromPath(lastPath, lastFileName, lastRealName);
+        }
+    }
+    
+    /**
+     * عرض dialog بمعلومات الخط
+     */
+    private void showFontMetadata() {
+        if (currentFontMetadata == null || currentFontMetadata.isEmpty()) {
+            Toast.makeText(requireContext(), 
+                getString(R.string.font_metadata_not_available), 
+                Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        FontMetadataDialog dialog = new FontMetadataDialog(requireContext(), currentFontMetadata);
+        dialog.show();
+    }
+    
+    private String formatFileSize(long size) {
+        if (size < 1024) {
+            return size + " B";
+        } else if (size < 1024 * 1024) {
+            return String.format("%.2f KB", size / 1024.0);
+        } else {
+            return String.format("%.2f MB", size / (1024.0 * 1024.0));
         }
     }
 
