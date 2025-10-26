@@ -4,8 +4,9 @@ import android.content.Context;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.Menu;
-import android.view.MenuInflater;
+import android.view.MenuItem;
 import androidx.annotation.NonNull;
+import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
@@ -16,10 +17,12 @@ import java.util.List;
 import dev.oneuiproject.oneui.layout.DrawerLayout;
 
 /**
- * MainActivity - النسخة المصححة مع دعم Fragment Options Menu
+ * MainActivity - الحل النهائي الكامل
  * 
- * الإصلاح المهم:
- * إضافة onCreateOptionsMenu() لتمكين Fragments من إضافة عناصر Menu
+ * المشكلة الأساسية:
+ * DrawerLayout في OneUI يدير Toolbar بطريقة خاصة، ولا يسمح للـ Fragments
+ * بإضافة menu items بسهولة. الحل هو استخدام Toolbar الخاص بالـ DrawerLayout
+ * مباشرةً وإعطاء السيطرة للـ Fragment النشط.
  */
 public class MainActivity extends BaseActivity implements FontViewerFragment.OnFontChangedListener {
 
@@ -50,6 +53,9 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
         initViews();
         initFragmentsList();
         
+        // إعداد Toolbar من DrawerLayout
+        setupToolbar();
+        
         if (savedInstanceState != null) {
             mCurrentFragmentIndex = savedInstanceState.getInt(KEY_CURRENT_FRAGMENT, 0);
             
@@ -75,17 +81,64 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
     }
 
     /**
-     * ★★★ الإصلاح الرئيسي: إضافة Options Menu ★★★
+     * إعداد Toolbar من DrawerLayout
      * 
-     * هذه الدالة ضرورية لتمكين Fragments من إضافة عناصر Menu
-     * بدونها، Fragment.onCreateOptionsMenu() لن يتم استدعاؤها أبداً!
+     * هذا مهم جداً: DrawerLayout في OneUI لديه toolbar داخلي،
+     * يجب أن نحصل عليه ونعيّنه كـ ActionBar للـ Activity
+     */
+    private void setupToolbar() {
+        // الحصول على Toolbar من DrawerLayout
+        Toolbar toolbar = mDrawerLayout.getToolbar();
+        
+        if (toolbar != null) {
+            // تعيينه كـ ActionBar
+            setSupportActionBar(toolbar);
+            
+            // السماح للـ Fragments بإضافة menu items
+            if (getSupportActionBar() != null) {
+                getSupportActionBar().setDisplayShowTitleEnabled(true);
+            }
+        }
+    }
+
+    /**
+     * هذه الدالة ضرورية لتفعيل نظام القوائم للـ Fragments
+     * 
+     * عندما يحتاج Fragment لإضافة عناصر قائمة، Android يتحقق أولاً
+     * من أن Activity لديها قائمة نشطة. وجود هذه الدالة يُفعّل النظام.
      */
     @Override
     public boolean onCreateOptionsMenu(@NonNull Menu menu) {
-        MenuInflater inflater = getMenuInflater();
-        // لا نضيف أي menu هنا - Fragments ستضيف عناصرها
-        // لكن وجود هذه الدالة ضروري لتفعيل Fragment menu system
+        // مسح القائمة القديمة لتجنب التكرار
+        menu.clear();
+        
+        // السماح للـ Fragment النشط بإضافة عناصره
+        // سيتم استدعاء Fragment.onCreateOptionsMenu() تلقائياً
         return true;
+    }
+
+    /**
+     * تمرير أحداث القائمة للـ Fragment النشط
+     */
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        // السماح للـ Fragment النشط بمعالجة الحدث أولاً
+        Fragment currentFragment = getCurrentFragment();
+        if (currentFragment != null && currentFragment.onOptionsItemSelected(item)) {
+            return true;
+        }
+        
+        return super.onOptionsItemSelected(item);
+    }
+
+    /**
+     * الحصول على Fragment النشط حالياً
+     */
+    private Fragment getCurrentFragment() {
+        if (mCurrentFragmentIndex >= 0 && mCurrentFragmentIndex < mFragments.size()) {
+            return mFragments.get(mCurrentFragmentIndex);
+        }
+        return null;
     }
 
     private void initViews() {
@@ -157,7 +210,13 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
         
         transaction.commitNow();
         
-        // ★ تحديث Menu عند تغيير Fragment
+        /**
+         * تحديث القائمة بعد تبديل Fragment
+         * 
+         * هذا مهم جداً: عند تبديل Fragment، يجب إعادة بناء القائمة
+         * لتعكس عناصر Fragment الجديد. invalidateOptionsMenu() تطلب
+         * من Android استدعاء onCreateOptionsMenu() مرة أخرى.
+         */
         invalidateOptionsMenu();
     }
 
@@ -211,6 +270,9 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
         if (mCurrentFragmentIndex == 2) {
             updateDrawerTitle(mCurrentFragmentIndex);
         }
+        
+        // تحديث القائمة لإظهار أيقونة المعلومات
+        invalidateOptionsMenu();
     }
     
     @Override
@@ -221,6 +283,9 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
         if (mCurrentFragmentIndex == 2) {
             updateDrawerTitle(mCurrentFragmentIndex);
         }
+        
+        // تحديث القائمة لإخفاء أيقونة المعلومات
+        invalidateOptionsMenu();
     }
 
     @Override
@@ -245,4 +310,4 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
             updateDrawerTitle(position);
         }
     }
-}
+            }
