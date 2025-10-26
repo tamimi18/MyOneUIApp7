@@ -4,29 +4,25 @@ import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.graphics.drawable.Drawable;
 import androidx.annotation.NonNull;
-import androidx.appcompat.content.res.AppCompatResources;
-import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.RecyclerView;
 import java.lang.reflect.Field;
-import java.util.List;
 
 public class DrawerListAdapter extends RecyclerView.Adapter<DrawerListViewHolder> {
 
     private Context mContext;
-    private List<Fragment> mFragments;
     private DrawerListener mListener;
     private int mSelectedPos = 0;
+
+    // عدد العناصر الثابت: Home, Settings, Font Viewer
+    private static final int ITEM_COUNT = 3;
 
     public interface DrawerListener {
         boolean onDrawerItemSelected(int position);
     }
 
-    public DrawerListAdapter(
-            @NonNull Context context, List<Fragment> fragments, DrawerListener listener) {
+    public DrawerListAdapter(@NonNull Context context, DrawerListener listener) {
         mContext = context;
-        mFragments = fragments;
         mListener = listener;
     }
 
@@ -40,22 +36,23 @@ public class DrawerListAdapter extends RecyclerView.Adapter<DrawerListViewHolder
 
     @Override
     public void onBindViewHolder(@NonNull DrawerListViewHolder holder, int position) {
-        Fragment fragment = mFragments.get(position);
-
-        // ★★★ تحديث: أضفنا دعم FontViewerFragment ★★★
         int iconRes = 0;
         String title = "";
         
-        if (fragment instanceof HomeFragment) {
-            iconRes = getOneUiIconId("ic_oui_home");
-            title = mContext.getString(R.string.drawer_home);
-        } else if (fragment instanceof SettingsFragment) {
-            iconRes = getOneUiIconId("ic_oui_settings");
-            title = mContext.getString(R.string.drawer_settings);
-        } else if (fragment instanceof FontViewerFragment) {
-            // ★★★ جديد: دعم FontViewerFragment ★★★
-            iconRes = getOneUiIconId("ic_oui_folder");  // أو أي أيقونة مناسبة أخرى
-            title = mContext.getString(R.string.drawer_font_viewer);
+        // تحديد الأيقونة والعنوان حسب الموقع
+        switch (position) {
+            case 0: // Home
+                iconRes = getOneUiIconId("ic_oui_home");
+                title = mContext.getString(R.string.drawer_home);
+                break;
+            case 1: // Settings
+                iconRes = getOneUiIconId("ic_oui_settings");
+                title = mContext.getString(R.string.drawer_settings);
+                break;
+            case 2: // Font Viewer
+                iconRes = getOneUiIconId("ic_oui_folder");
+                title = mContext.getString(R.string.drawer_font_viewer);
+                break;
         }
 
         if (iconRes != 0) {
@@ -87,7 +84,7 @@ public class DrawerListAdapter extends RecyclerView.Adapter<DrawerListViewHolder
 
     @Override
     public int getItemCount() {
-        return mFragments != null ? mFragments.size() : 0;
+        return ITEM_COUNT;
     }
 
     public void setSelectedItem(int position) {
