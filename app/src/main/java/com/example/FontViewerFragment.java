@@ -8,9 +8,6 @@ import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
@@ -33,13 +30,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * FontViewerFragment - النسخة المحدثة مع نظام القوائم الكامل
+ * FontViewerFragment - النسخة المبسطة (بدون onCreateOptionsMenu)
  * 
- * التغييرات الرئيسية:
- * 1. setHasOptionsMenu(true) في onCreate()
- * 2. onCreateOptionsMenu() لإضافة أيقونة المعلومات
- * 3. التحكم بظهور الأيقونة حسب حالة الخط
- * 4. استدعاء invalidateOptionsMenu() عند التغييرات
+ * التغيير الجذري: Fragment لا يدير القائمة بنفسه
+ * MainActivity هي المسؤولة عن كل شيء متعلق بالقائمة
  */
 public class FontViewerFragment extends Fragment implements SharedPreferences.OnSharedPreferenceChangeListener {
 
@@ -91,9 +85,7 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         
-        // ★★★ تفعيل Options Menu ★★★
-        // هذا السطر ضروري ليعلم Android أن Fragment يريد إضافة عناصر للقائمة
-        setHasOptionsMenu(true);
+        // ★★★ لا نستدعي setHasOptionsMenu() - MainActivity ستدير القائمة ★★★
 
         fontPickerLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
@@ -107,45 +99,6 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
                 }
             }
         );
-    }
-    
-    /**
-     * ★★★ إنشاء القائمة (Options Menu) ★★★
-     * 
-     * هنا نضيف أيقونة المعلومات (ℹ️) للقائمة.
-     * الأيقونة تظهر فقط عندما يكون هناك خط محمّل.
-     */
-    @Override
-    public void onCreateOptionsMenu(@NonNull Menu menu, @NonNull MenuInflater inflater) {
-        super.onCreateOptionsMenu(menu, inflater);
-        
-        // ★★★ مسح القائمة القديمة أولاً لتجنب التكرار ★★★
-        menu.clear();
-        
-        // إضافة عناصر القائمة من ملف XML
-        inflater.inflate(R.menu.menu_font_viewer, menu);
-        
-        // ★★★ التحكم بظهور أيقونة المعلومات ★★★
-        MenuItem metadataItem = menu.findItem(R.id.menu_font_metadata);
-        if (metadataItem != null) {
-            // الأيقونة تظهر فقط إذا كان هناك خط محمّل
-            boolean shouldShow = currentFontPath != null && !currentFontPath.isEmpty();
-            metadataItem.setVisible(shouldShow);
-        }
-    }
-    
-    /**
-     * ★★★ معالجة الضغط على عناصر القائمة ★★★
-     * 
-     * عندما يضغط المستخدم على أيقونة المعلومات، نعرض Dialog
-     */
-    @Override
-    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
-        if (item.getItemId() == R.id.menu_font_metadata) {
-            showFontMetadata();
-            return true;
-        }
-        return super.onOptionsItemSelected(item);
     }
 
     @Nullable
@@ -190,10 +143,6 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
             lastPreviewText = currentPreviewText;
             updatePreviewTexts();
         }
-        
-        // ★★★ تحديث القائمة عند الظهور ★★★
-        // هذا يضمن أن الأيقونة تظهر/تختفي بشكل صحيح
-        requireActivity().invalidateOptionsMenu();
     }
 
     @Override
@@ -452,11 +401,8 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
                 }
 
                 applyFontToPreviewTexts();
-                
-                // ★★★ تحديث القائمة بعد تحميل الخط ★★★
-                // هذا يجعل أيقونة المعلومات تظهر تلقائياً
-                requireActivity().invalidateOptionsMenu();
 
+                // ★★★ أخبر MainActivity أن خط تم تحميله ★★★
                 if (fontChangedListener != null) {
                     fontChangedListener.onFontChanged(realName, fileName);
                 }
@@ -490,11 +436,8 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
         Typeface defaultTypeface = Typeface.DEFAULT;
         previewSentence.setTypeface(defaultTypeface);
         previewNumbers.setTypeface(defaultTypeface);
-        
-        // ★★★ تحديث القائمة بعد إزالة الخط ★★★
-        // هذا يجعل أيقونة المعلومات تختفي تلقائياً
-        requireActivity().invalidateOptionsMenu();
 
+        // ★★★ أخبر MainActivity أن الخط تم حذفه ★★★
         if (fontChangedListener != null) {
             fontChangedListener.onFontCleared();
         }
@@ -552,11 +495,10 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
     }
     
     /**
-     * ★★★ عرض Dialog بمعلومات الخط ★★★
-     * 
-     * تُستدعى عندما يضغط المستخدم على أيقونة المعلومات
+     * ★★★ دالة عامة تُستدعى من MainActivity ★★★
+     * عندما يضغط المستخدم على أيقونة المعلومات
      */
-    private void showFontMetadata() {
+    public void showMetadataDialog() {
         if (currentFontMetadata == null || currentFontMetadata.isEmpty()) {
             Toast.makeText(requireContext(), 
                 getString(R.string.font_metadata_not_available), 
@@ -604,4 +546,4 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
     public boolean hasFontSelected() {
         return currentFontPath != null && !currentFontPath.isEmpty();
     }
-            }
+                    }
