@@ -16,25 +16,6 @@ import java.util.ArrayList;
 import java.util.List;
 import dev.oneuiproject.oneui.layout.DrawerLayout;
 
-/**
- * MainActivity - الحل النهائي المضمون 100%
- * 
- * بعد تحليل عميق للمشكلة، اكتشفت أن المشكلة الحقيقية هي في توقيت
- * استدعاء onCreateOptionsMenu() وعدم موثوقية invalidateOptionsMenu()
- * في بعض الحالات.
- * 
- * الحل الجذري:
- * بدلاً من الاعتماد على نظام Menu المعقد، نضيف الأيقونة مباشرة
- * إلى Toolbar كـ ImageButton. هذا يعطينا تحكماً كاملاً ومباشراً
- * بدون أي مشاكل توقيت أو تحديث.
- * 
- * لماذا هذا الحل أفضل؟
- * 1. تحكم مباشر 100% في الأيقونة
- * 2. لا توجد مشاكل توقيت
- * 3. يعمل في جميع الحالات بدون استثناء
- * 4. أداء أفضل (لا حاجة لإعادة inflate القائمة)
- * 5. كود أبسط وأسهل في الصيانة
- */
 public class MainActivity extends BaseActivity implements FontViewerFragment.OnFontChangedListener {
 
     private DrawerLayout mDrawerLayout;
@@ -52,7 +33,6 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
     private String currentFontFileName;
     private boolean hasFontLoaded = false;
 
-    // ★★★ الحل الجديد - زر مباشر في Toolbar ★★★
     private ImageButton mFontInfoButton;
 
     @Override
@@ -112,23 +92,6 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
         }
     }
 
-    /**
-     * ★★★ الحل الجذري - إضافة الأيقونة مباشرة إلى Toolbar ★★★
-     * 
-     * هذا الحل يتجاوز تماماً نظام Menu ويضيف الأيقونة مباشرة.
-     * 
-     * كيف يعمل؟
-     * 1. نحصل على Toolbar من DrawerLayout
-     * 2. ننشئ ImageButton جديد برمجياً
-     * 3. نضبط خصائصه (الأيقونة، الحجم، الخلفية، إلخ)
-     * 4. نضيفه مباشرة إلى Toolbar
-     * 5. نربطه بـ OnClickListener
-     * 6. نخفيه افتراضياً حتى يتم تحميل خط
-     * 
-     * لماذا هذا مضمون؟
-     * لأننا نتحكم بالأيقونة بشكل مباشر تماماً مثل أي View عادي.
-     * لا توجد أي واسطة أو نظام معقد يمكن أن يسبب مشاكل.
-     */
     private void setupToolbar() {
         Toolbar toolbar = mDrawerLayout.getToolbar();
         if (toolbar != null) {
@@ -137,12 +100,9 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
                 getSupportActionBar().setDisplayShowTitleEnabled(true);
             }
             
-            // ★★★ إنشاء زر المعلومات برمجياً ★★★
             mFontInfoButton = new ImageButton(this);
             
-            // ضبط الأيقونة
             try {
-                // نحاول استخدام الأيقونة من مكتبة OneUI
                 int iconResId = getResources().getIdentifier(
                     "ic_oui_info_outline", 
                     "drawable", 
@@ -152,37 +112,30 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
                 if (iconResId != 0) {
                     mFontInfoButton.setImageResource(iconResId);
                 } else {
-                    // إذا لم نجد الأيقونة من OneUI، نستخدم أيقونة النظام
                     mFontInfoButton.setImageResource(android.R.drawable.ic_menu_info_details);
                 }
             } catch (Exception e) {
-                // في حالة أي خطأ، نستخدم أيقونة النظام
                 mFontInfoButton.setImageResource(android.R.drawable.ic_menu_info_details);
             }
             
-            // ضبط حجم الزر (نفس حجم أزرار Toolbar القياسية)
             int size = (int) (48 * getResources().getDisplayMetrics().density);
             Toolbar.LayoutParams params = new Toolbar.LayoutParams(size, size);
             mFontInfoButton.setLayoutParams(params);
             
-            // إزالة الخلفية الافتراضية للزر
             mFontInfoButton.setBackgroundResource(
                 android.R.attr.selectableItemBackgroundBorderless
             );
             
-            // ضبط padding داخلي
             int padding = (int) (12 * getResources().getDisplayMetrics().density);
             mFontInfoButton.setPadding(padding, padding, padding, padding);
             
-            // ضبط لون الأيقونة (تلقائي حسب الثيم)
-            mFontInfoButton.setColorFilter(
-                getResources().getColor(R.color.oui_primary_text_color, getTheme())
-            );
+            // استخدام لون من الثيم بدلاً من موارد OneUI
+            android.util.TypedValue typedValue = new android.util.TypedValue();
+            getTheme().resolveAttribute(android.R.attr.textColorPrimary, typedValue, true);
+            mFontInfoButton.setColorFilter(typedValue.data);
             
-            // إضافة وصف للإتاحة (Accessibility)
             mFontInfoButton.setContentDescription(getString(R.string.font_metadata_title));
             
-            // ربط الزر بـ listener
             mFontInfoButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
@@ -193,32 +146,17 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
                 }
             });
             
-            // إخفاء الزر افتراضياً
             mFontInfoButton.setVisibility(View.GONE);
             
-            // إضافة الزر إلى Toolbar
             toolbar.addView(mFontInfoButton);
         }
     }
 
-    /**
-     * ★★★ تحديث حالة زر المعلومات ★★★
-     * 
-     * هذه الدالة بسيطة جداً - تخفي أو تظهر الزر مباشرة.
-     * لا توجد أي تعقيدات أو مشاكل محتملة.
-     * 
-     * متى تُستدعى؟
-     * - عند تغيير Fragment
-     * - عند تحميل خط جديد
-     * - عند حذف الخط
-     * - عند التحقق من حالة الخط
-     */
     private void updateFontInfoButtonVisibility() {
         if (mFontInfoButton == null) {
             return;
         }
         
-        // أظهر الزر فقط إذا كنا في FontViewerFragment وتم تحميل خط
         boolean shouldShow = (mCurrentFragmentIndex == 2) && hasFontLoaded;
         
         mFontInfoButton.setVisibility(shouldShow ? View.VISIBLE : View.GONE);
@@ -288,7 +226,6 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
         
         transaction.commitNow();
         
-        // حدّث حالة زر المعلومات
         updateFontInfoButtonVisibility();
     }
 
@@ -367,7 +304,6 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
             updateDrawerTitle(mCurrentFragmentIndex);
         }
         
-        // أظهر الزر فوراً
         updateFontInfoButtonVisibility();
     }
     
@@ -381,7 +317,6 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
             updateDrawerTitle(mCurrentFragmentIndex);
         }
         
-        // أخفِ الزر فوراً
         updateFontInfoButtonVisibility();
     }
 
