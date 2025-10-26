@@ -1,4 +1,4 @@
-package com.example;
+package com.example.oneuiapp;
 
 import android.app.Activity;
 import android.app.AlertDialog;
