@@ -100,4 +100,5 @@
     <string name="font_info_no_font_selected">لم يتم اختيار خط</string>
     <string name="font_info_error_extracting">حدث خطأ أثناء استخراج بيانات الخط</string>
     <string name="font_viewer_no_metadata">لا توجد بيانات متاحة لهذا الخط</string>
+    <string name="menu_font_info">Font Info</string>
 </resources>
