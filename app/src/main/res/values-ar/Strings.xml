@@ -33,10 +33,13 @@
     <string name="navigation_drawer_close">إغلاق درج التنقل</string>
     
     <!-- ═══════════════════════════════════════════════════════════════
-         إعدادات عامة (General Settings)
+         إعدادات عامة (General Settings) - جديد
          ═══════════════════════════════════════════════════════════════ -->
     
+    <!-- عنوان قسم General -->
     <string name="settings_general">عام</string>
+    
+    <!-- نص المعاينة (Preview Text) -->
     <string name="settings_preview_text">نص المعاينة</string>
     <string name="settings_preview_text_summary">عدّل النص المعروض في المعاينة</string>
     <string name="settings_preview_text_default">الحب سر الوجود والجمال أساس الحياة</string>
@@ -47,17 +50,22 @@
          إعدادات المظهر (Appearance Settings)
          ═══════════════════════════════════════════════════════════════ -->
     
+    <!-- عنوان قسم المظهر -->
     <string name="settings_appearance">المظهر</string>
+    
+    <!-- إعدادات اللغة -->
     <string name="settings_language">اللغة</string>
     <string name="settings_language_system">افتراضي النظام</string>
     <string name="settings_language_arabic">العربية</string>
     <string name="settings_language_english">الإنجليزية</string>
     
+    <!-- إعدادات الثيم -->
     <string name="settings_theme">الثيم</string>
     <string name="settings_theme_system">افتراضي النظام</string>
     <string name="settings_theme_light">فاتح</string>
     <string name="settings_theme_dark">داكن</string>
 
+    <!-- إعدادات الخط -->
     <string name="settings_font">نمط الخط</string>
     <string name="settings_font_system">الافتراضي للنظام</string>
     <string name="settings_font_wf_regular">WF عادي</string>
@@ -67,6 +75,7 @@
          إعدادات الإشعارات (Notification Settings)
          ═══════════════════════════════════════════════════════════════ -->
     
+    <!-- عنوان قسم الإشعارات -->
     <string name="settings_notifications_section">الإشعارات</string>
     <string name="settings_notifications_placeholder">ميزة الإشعارات قادمة قريبًا</string>
     <string name="settings_notifications">الإشعارات</string>
@@ -75,7 +84,7 @@
     <string name="notifications_disabled">الإشعارات معطّلة</string>
 
     <!-- ═══════════════════════════════════════════════════════════════
-         نصوص عارض الخطوط (Font Viewer) - محدثة
+         نصوص عارض الخطوط (Font Viewer)
          ═══════════════════════════════════════════════════════════════ -->
     
     <string name="font_viewer_select_font">اختر ملف الخط</string>
@@ -90,29 +99,9 @@
     <string name="font_viewer_error_opening_picker">تعذر فتح منتقي الملفات</string>
     <string name="font_viewer_error_loading_font">حدث خطأ أثناء تحميل ملف الخط</string>
 
-    <!-- ★★★ نصوص جديدة: معلومات الخط ★★★ -->
-    <string name="font_viewer_info">معلومات الخط</string>
-    <string name="font_viewer_info_title">بيانات الخط</string>
-    <string name="font_viewer_no_metadata">لا توجد بيانات متاحة لهذا الخط</string>
-    <string name="font_viewer_copy_info">نسخ</string>
-    <string name="font_viewer_info_copied">تم نسخ معلومات الخط إلى الحافظة</string>
-    
-    <!-- تسميات بيانات الخط -->
-    <string name="font_metadata_full_name">الاسم الكامل</string>
-    <string name="font_metadata_family">عائلة الخط</string>
-    <string name="font_metadata_subfamily">العائلة الفرعية (النمط)</string>
-    <string name="font_metadata_version">الإصدار</string>
-    <string name="font_metadata_designer">المصمم</string>
-    <string name="font_metadata_manufacturer">الشركة المصنعة</string>
-    <string name="font_metadata_copyright">حقوق النشر</string>
-    <string name="font_metadata_license">الترخيص</string>
-    <string name="font_metadata_description">الوصف</string>
-    <string name="font_metadata_trademark">العلامة التجارية</string>
-    <string name="font_metadata_postscript">اسم PostScript</string>
-    <string name="font_metadata_unique_id">المعرّف الفريد</string>
-    <string name="font_metadata_links">الروابط</string>
-    <string name="font_metadata_vendor_url">رابط الموزع</string>
-    <string name="font_metadata_designer_url">رابط المصمم</string>
-    <string name="font_metadata_license_url">رابط الترخيص</string>
+    <!-- عارض الخطوط - نصوص الشريط السفلي -->
+    <string name="font_viewer_adjust_size">تعديل حجم الخط</string>
+    <string name="font_viewer_import_font">استيراد خط</string>
+    <string name="font_viewer_toggle_bold">تفعيل/إلغاء العريض</string>
 
 </resources>
