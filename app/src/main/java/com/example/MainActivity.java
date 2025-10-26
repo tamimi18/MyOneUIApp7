@@ -1,7 +1,6 @@
 package com.example.oneuiapp;
 
 import android.content.Context;
-import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
 import androidx.annotation.NonNull;
@@ -14,7 +13,15 @@ import java.util.ArrayList;
 import java.util.List;
 import dev.oneuiproject.oneui.layout.DrawerLayout;
 
-public class MainActivity extends BaseActivity {
+/**
+ * MainActivity - النسخة المصححة مع إزالة المراجع غير المستخدمة
+ * 
+ * التحديث الجديد:
+ * - تم حذف TAG_SETTINGS لأنه لم يعد مستخدماً
+ * - تم تبسيط الكود وتنظيفه من المراجع القديمة
+ * - جميع الوظائف تعمل بشكل صحيح مع PreferenceFragmentCompat
+ */
+public class MainActivity extends BaseActivity implements FontViewerFragment.OnFontChangedListener {
 
     private DrawerLayout mDrawerLayout;
     private RecyclerView mDrawerListView;
@@ -24,7 +31,17 @@ public class MainActivity extends BaseActivity {
     
     private static final String KEY_CURRENT_FRAGMENT = "current_fragment_index";
     
+    // ★★★ تم حذف TAG_SETTINGS القديم لأنه لم يعد مستخدماً ★★★
     private static final String TAG_HOME = "fragment_home";
+    private static final String TAG_FONT_VIEWER = "fragment_font_viewer";
+    // لاحظ: لم نعد بحاجة لـ TAG منفصل لـ SettingsFragment
+    // لأنها الآن PreferenceFragment بدون layout مخصص
+    
+    /**
+     * متغيرات لحفظ معلومات الخط الحالي
+     */
+    private String currentFontRealName;
+    private String currentFontFileName;
 
     @Override
     protected void attachBaseContext(Context newBase) {
@@ -44,12 +61,14 @@ public class MainActivity extends BaseActivity {
             
             FragmentManager fm = getSupportFragmentManager();
             Fragment homeFragment = fm.findFragmentByTag(TAG_HOME);
-            Fragment settingsFragment = fm.findFragmentByTag("settings");
+            Fragment settingsFragment = fm.findFragmentByTag("settings"); // اسم بسيط
+            Fragment fontViewerFragment = fm.findFragmentByTag(TAG_FONT_VIEWER);
             
-            if (homeFragment != null && settingsFragment != null) {
+            if (homeFragment != null && settingsFragment != null && fontViewerFragment != null) {
                 mFragments.clear();
                 mFragments.add(homeFragment);
                 mFragments.add(settingsFragment);
+                mFragments.add(fontViewerFragment);
             }
             
             showFragmentFast(mCurrentFragmentIndex);
@@ -70,6 +89,7 @@ public class MainActivity extends BaseActivity {
         if (mFragments.isEmpty()) {
             mFragments.add(new HomeFragment());
             mFragments.add(new SettingsFragment());
+            mFragments.add(new FontViewerFragment());
         }
     }
 
@@ -77,9 +97,12 @@ public class MainActivity extends BaseActivity {
         FragmentManager fm = getSupportFragmentManager();
         FragmentTransaction transaction = fm.beginTransaction();
         
+        // إضافة Fragments مع tags مبسطة
         transaction.add(R.id.main_content, mFragments.get(0), TAG_HOME);
         transaction.add(R.id.main_content, mFragments.get(1), "settings");
         transaction.hide(mFragments.get(1));
+        transaction.add(R.id.main_content, mFragments.get(2), TAG_FONT_VIEWER);
+        transaction.hide(mFragments.get(2));
         
         transaction.commit();
     }
@@ -88,15 +111,11 @@ public class MainActivity extends BaseActivity {
         mDrawerListView.setLayoutManager(new LinearLayoutManager(this));
         mDrawerAdapter = new DrawerListAdapter(
                 this,
+                mFragments,
                 position -> {
                     mDrawerLayout.setDrawerOpen(false, true);
                     
-                    if (position == 2) {
-                        // فتح FontViewerActivity
-                        Intent intent = new Intent(MainActivity.this, FontViewerActivity.class);
-                        startActivity(intent);
-                        return true;
-                    } else if (position != mCurrentFragmentIndex) {
+                    if (position != mCurrentFragmentIndex) {
                         mCurrentFragmentIndex = position;
                         showFragmentFast(position);
                         updateDrawerTitle(position);
@@ -132,6 +151,9 @@ public class MainActivity extends BaseActivity {
         transaction.commitNow();
     }
 
+    /**
+     * تحديث عنوان الدرج بناءً على Fragment المعروض
+     */
     private void updateDrawerTitle(int fragmentIndex) {
         if (mDrawerLayout == null) {
             return;
@@ -141,11 +163,33 @@ public class MainActivity extends BaseActivity {
         String subtitle;
         
         if (fragmentIndex == 0) {
+            // الشاشة الرئيسية (HomeFragment)
             title = getString(R.string.app_name);
             subtitle = getString(R.string.app_subtitle);
+            
         } else if (fragmentIndex == 1) {
+            // شاشة الإعدادات (SettingsFragment)
             title = getString(R.string.title_settings);
             subtitle = getString(R.string.settings_subtitle);
+            
+        } else if (fragmentIndex == 2) {
+            // شاشة عارض الخطوط (FontViewerFragment)
+            FontViewerFragment fontFragment = (FontViewerFragment) mFragments.get(2);
+            
+            if (fontFragment != null && fontFragment.hasFontSelected()) {
+                currentFontRealName = fontFragment.getCurrentFontRealName();
+                currentFontFileName = fontFragment.getCurrentFontFileName();
+            }
+            
+            if (currentFontRealName != null && !currentFontRealName.isEmpty()) {
+                title = currentFontRealName;
+                subtitle = currentFontFileName != null ? currentFontFileName 
+                         : getString(R.string.font_viewer_select_description);
+            } else {
+                title = getString(R.string.drawer_font_viewer);
+                subtitle = getString(R.string.font_viewer_select_description);
+            }
+            
         } else {
             title = getString(R.string.app_name);
             subtitle = getString(R.string.app_subtitle);
@@ -153,6 +197,29 @@ public class MainActivity extends BaseActivity {
         
         mDrawerLayout.setTitle(title);
         mDrawerLayout.setExpandedSubtitle(subtitle);
+    }
+
+    /**
+     * Callbacks من FontViewerFragment
+     */
+    @Override
+    public void onFontChanged(String fontRealName, String fontFileName) {
+        this.currentFontRealName = fontRealName;
+        this.currentFontFileName = fontFileName;
+        
+        if (mCurrentFragmentIndex == 2) {
+            updateDrawerTitle(mCurrentFragmentIndex);
+        }
+    }
+    
+    @Override
+    public void onFontCleared() {
+        this.currentFontRealName = null;
+        this.currentFontFileName = null;
+        
+        if (mCurrentFragmentIndex == 2) {
+            updateDrawerTitle(mCurrentFragmentIndex);
+        }
     }
 
     @Override
@@ -171,14 +238,10 @@ public class MainActivity extends BaseActivity {
     }
     
     public void updateDrawerSelection(int position) {
-        if (mDrawerAdapter != null && position >= 0 && position < 3) {
-            if (position != 2) {
-                mCurrentFragmentIndex = position;
-            }
+        if (mDrawerAdapter != null && position >= 0 && position < mFragments.size()) {
+            mCurrentFragmentIndex = position;
             mDrawerAdapter.setSelectedItem(position);
-            if (position != 2) {
-                updateDrawerTitle(position);
-            }
+            updateDrawerTitle(position);
         }
     }
 }
