@@ -3,6 +3,8 @@ package com.example.oneuiapp;
 import android.content.Context;
 import android.os.Build;
 import android.os.Bundle;
+import android.view.Menu;
+import android.view.MenuInflater;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
@@ -14,12 +16,10 @@ import java.util.List;
 import dev.oneuiproject.oneui.layout.DrawerLayout;
 
 /**
- * MainActivity - النسخة المصححة مع إزالة المراجع غير المستخدمة
+ * MainActivity - النسخة المصححة مع دعم Fragment Options Menu
  * 
- * التحديث الجديد:
- * - تم حذف TAG_SETTINGS لأنه لم يعد مستخدماً
- * - تم تبسيط الكود وتنظيفه من المراجع القديمة
- * - جميع الوظائف تعمل بشكل صحيح مع PreferenceFragmentCompat
+ * الإصلاح المهم:
+ * إضافة onCreateOptionsMenu() لتمكين Fragments من إضافة عناصر Menu
  */
 public class MainActivity extends BaseActivity implements FontViewerFragment.OnFontChangedListener {
 
@@ -31,15 +31,9 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
     
     private static final String KEY_CURRENT_FRAGMENT = "current_fragment_index";
     
-    // ★★★ تم حذف TAG_SETTINGS القديم لأنه لم يعد مستخدماً ★★★
     private static final String TAG_HOME = "fragment_home";
     private static final String TAG_FONT_VIEWER = "fragment_font_viewer";
-    // لاحظ: لم نعد بحاجة لـ TAG منفصل لـ SettingsFragment
-    // لأنها الآن PreferenceFragment بدون layout مخصص
     
-    /**
-     * متغيرات لحفظ معلومات الخط الحالي
-     */
     private String currentFontRealName;
     private String currentFontFileName;
 
@@ -61,7 +55,7 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
             
             FragmentManager fm = getSupportFragmentManager();
             Fragment homeFragment = fm.findFragmentByTag(TAG_HOME);
-            Fragment settingsFragment = fm.findFragmentByTag("settings"); // اسم بسيط
+            Fragment settingsFragment = fm.findFragmentByTag("settings");
             Fragment fontViewerFragment = fm.findFragmentByTag(TAG_FONT_VIEWER);
             
             if (homeFragment != null && settingsFragment != null && fontViewerFragment != null) {
@@ -78,6 +72,20 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
         
         setupDrawer();
         updateDrawerTitle(mCurrentFragmentIndex);
+    }
+
+    /**
+     * ★★★ الإصلاح الرئيسي: إضافة Options Menu ★★★
+     * 
+     * هذه الدالة ضرورية لتمكين Fragments من إضافة عناصر Menu
+     * بدونها، Fragment.onCreateOptionsMenu() لن يتم استدعاؤها أبداً!
+     */
+    @Override
+    public boolean onCreateOptionsMenu(@NonNull Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        // لا نضيف أي menu هنا - Fragments ستضيف عناصرها
+        // لكن وجود هذه الدالة ضروري لتفعيل Fragment menu system
+        return true;
     }
 
     private void initViews() {
@@ -97,7 +105,6 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
         FragmentManager fm = getSupportFragmentManager();
         FragmentTransaction transaction = fm.beginTransaction();
         
-        // إضافة Fragments مع tags مبسطة
         transaction.add(R.id.main_content, mFragments.get(0), TAG_HOME);
         transaction.add(R.id.main_content, mFragments.get(1), "settings");
         transaction.hide(mFragments.get(1));
@@ -149,11 +156,11 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
         }
         
         transaction.commitNow();
+        
+        // ★ تحديث Menu عند تغيير Fragment
+        invalidateOptionsMenu();
     }
 
-    /**
-     * تحديث عنوان الدرج بناءً على Fragment المعروض
-     */
     private void updateDrawerTitle(int fragmentIndex) {
         if (mDrawerLayout == null) {
             return;
@@ -163,17 +170,14 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
         String subtitle;
         
         if (fragmentIndex == 0) {
-            // الشاشة الرئيسية (HomeFragment)
             title = getString(R.string.app_name);
             subtitle = getString(R.string.app_subtitle);
             
         } else if (fragmentIndex == 1) {
-            // شاشة الإعدادات (SettingsFragment)
             title = getString(R.string.title_settings);
             subtitle = getString(R.string.settings_subtitle);
             
         } else if (fragmentIndex == 2) {
-            // شاشة عارض الخطوط (FontViewerFragment)
             FontViewerFragment fontFragment = (FontViewerFragment) mFragments.get(2);
             
             if (fontFragment != null && fontFragment.hasFontSelected()) {
@@ -199,9 +203,6 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
         mDrawerLayout.setExpandedSubtitle(subtitle);
     }
 
-    /**
-     * Callbacks من FontViewerFragment
-     */
     @Override
     public void onFontChanged(String fontRealName, String fontFileName) {
         this.currentFontRealName = fontRealName;
@@ -244,4 +245,4 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
             updateDrawerTitle(position);
         }
     }
-}
+            }
