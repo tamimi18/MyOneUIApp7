@@ -4,7 +4,6 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.View;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.preference.EditTextPreference;
@@ -13,18 +12,8 @@ import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceManager;
 import androidx.preference.SwitchPreferenceCompat;
-
 import dev.oneuiproject.oneui.widget.Toast;
 
-/**
- * Complete SettingsFragment that ensures font selection applies immediately.
- *
- * Replace your existing app/src/main/java/com/example/oneuiapp/SettingsFragment.java with this file.
- *
- * Key changes:
- * - On font_mode change: SettingsHelper.setFontMode(...), call FontHelper.applyFont(context) and then
- *   requireActivity().recreate() so Activity and its attached contexts re-read the Typeface fields.
- */
 public class SettingsFragment extends PreferenceFragmentCompat implements Preference.OnPreferenceChangeListener {
 
     private Context mContext;
@@ -128,15 +117,20 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Prefer
             SettingsHelper sh = new SettingsHelper(mContext);
             sh.setFontMode(mode);
 
-            // Apply immediately to Typeface static fields and recreate activity to refresh UI.
             try {
                 FontHelper.applyFont(mContext.getApplicationContext());
             } catch (Exception e) {
                 android.util.Log.e("SettingsFragment", "FontHelper.applyFont failed", e);
             }
 
-            // Recreate activity so views re-read Typeface and theme.
-            requireActivity().recreate();
+            // Notify all activities to recreate via MyApplication registry (broadcast)
+            MyApplication app = MyApplication.getInstance();
+            if (app != null) {
+                app.recreateAllActivities();
+            } else {
+                requireActivity().recreate();
+            }
+
             return true;
         } else if ("notifications_enabled".equals(key)) {
             Boolean enabled = (Boolean) newValue;
@@ -153,4 +147,4 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Prefer
 
         return true;
     }
-                    }
+}
