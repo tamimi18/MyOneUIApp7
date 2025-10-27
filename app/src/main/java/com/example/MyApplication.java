@@ -4,54 +4,38 @@ import android.app.Application;
 import android.content.Context;
 
 /**
- * MyApplication - النسخة المحدثة مع تطبيق الخط عند بدء التطبيق
- * 
- * ★★★ الحل الرابع: تطبيق الخط تلقائياً عند بدء التطبيق ★★★
+ * MyApplication: applies theme and font early so Activities pick them up.
+ *
+ * Replace your existing app/src/main/java/com/example/oneuiapp/MyApplication.java with this file.
  */
 public class MyApplication extends Application {
 
     @Override
-    public void onCreate() {
-        super.onCreate();
-        
-        // تهيئة معالج الأعطال
-        CrashHandler.init(this);
-        
-        // تهيئة الإعدادات (الثيم)
-        SettingsHelper.initializeFromSettings(this);
-        
-        // ★★★ تطبيق الخط المخصص على التطبيق بأكمله ★★★
-        // هذا السطر هو المفتاح لحل المشكلة الرابعة!
-        // 
-        // ماذا يحدث هنا؟
-        // 1. عند بدء التطبيق، يتم استدعاء onCreate() تلقائياً
-        // 2. FontHelper.applyFont() يقرأ الخط المحفوظ من SharedPreferences
-        // 3. يستخدم Reflection لتغيير الخطوط الافتراضية في Android
-        // 4. من هذه اللحظة، كل النصوص في التطبيق ستستخدم الخط المختار
-        // 
-        // متى يتم استدعاء هذا؟
-        // - عند فتح التطبيق لأول مرة
-        // - عند العودة للتطبيق بعد إغلاقه من الذاكرة
-        // - بعد استدعاء recreate() من الإعدادات (يتم إعادة إنشاء Application)
-        FontHelper.applyFont(this);
-    }
-
-    @Override
     protected void attachBaseContext(Context base) {
-        // تطبيق إعدادات اللغة قبل إنشاء Application
+        // Apply language wrapping early
         super.attachBaseContext(SettingsHelper.wrapContext(base));
-        
-        // ★★★ تطبيق الخط هنا أيضاً للتأكيد ★★★
-        // attachBaseContext يُستدعى قبل onCreate، لذلك نطبق الخط مرتين
-        // للتأكد من أنه يعمل في جميع الحالات
-        // 
-        // ملاحظة: لا نستخدم 'this' هنا لأن Application لم يتم إنشاؤه بعد
-        // نستخدم 'base' context بدلاً منه
+        // Try to apply font as early as possible using base context
         try {
             FontHelper.applyFont(base);
         } catch (Exception e) {
-            // في حالة حدوث أي خطأ، نتجاهله - سيتم تطبيق الخط في onCreate()
-            android.util.Log.e("MyApplication", "Failed to apply font in attachBaseContext", e);
+            android.util.Log.e("MyApplication", "applyFont failed in attachBaseContext", e);
+        }
+    }
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+
+        CrashHandler.init(this);
+
+        // Apply theme setting before activities are created
+        SettingsHelper.initializeFromSettings(this);
+
+        // Ensure font is applied when app process starts
+        try {
+            FontHelper.applyFont(this);
+        } catch (Exception e) {
+            android.util.Log.e("MyApplication", "applyFont failed in onCreate", e);
         }
     }
 }
