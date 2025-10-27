@@ -115,7 +115,7 @@ public class SettingsHelper {
     // ---------------- Preview text ----------------
     private String getPreviewTextInternal() {
         // ✅ الآن يستدعي resource الصحيح
-        String def = context.getString(R.string.settingspreviewtext_default);
+        String def = context.getString(R.string.settings_preview_text_default);
         return prefs.getString(KEYPREVIEWTEXT, def);
     }
 
