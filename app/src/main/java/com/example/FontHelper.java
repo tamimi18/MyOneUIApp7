@@ -7,19 +7,10 @@ import android.util.Log;
 import java.lang.reflect.Field;
 
 /**
- * Complete FontHelper that reliably applies and resets fonts across the app.
- *
- * Replace your existing app/src/main/java/com/example/oneuiapp/FontHelper.java with this file.
- *
- * Important behaviour:
- * - applyFont(context): if a custom Typeface is returned by SettingsHelper.getTypeface(context),
- *   it replaces Typeface static fields so UI uses the selected font.
- * - if getTypeface returns null, resetToSystemFonts() attempts to restore system-like defaults.
- *
- * Notes:
- * - Reflection may not affect every 3rd-party widget that already cached Typefaces, but it does
- *   update Android's global Typeface fields used by frameworks and most views.
- * - After setFont selection, Activity recreation (requireActivity().recreate()) ensures live UI updates.
+ * FontHelper النهائي:
+ * - يطبّق الخط المختار من SettingsHelper على مستوى النظام.
+ * - إذا كان الخط = System Font يرجّع القيم الافتراضية.
+ * - يستخدم Reflection لتغيير الحقول الثابتة في Typeface.
  */
 public class FontHelper {
 
@@ -29,6 +20,7 @@ public class FontHelper {
         Typeface custom = SettingsHelper.getTypeface(context);
 
         if (custom == null) {
+            // ✅ رجوع للخط الافتراضي للنظام
             resetToSystemFonts();
             return;
         }
