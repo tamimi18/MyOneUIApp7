@@ -13,26 +13,15 @@ import androidx.core.content.res.ResourcesCompat;
 
 import java.util.Locale;
 
-/**
- * Complete SettingsHelper for your project.
- *
- * Responsibilities:
- * - central SharedPreferences access (single prefs name used across app)
- * - strong compatibility with ListPreference (stores entryValues as strings)
- * - expose static helpers used by FontHelper, BaseActivity, MyApplication and fragments
- *
- * Replace your existing app/src/main/java/com/example/oneuiapp/SettingsHelper.java with this file.
- * Ensure res/font/wf_rglr and res/font/samsung_one exist or adjust resource IDs below.
- */
 public class SettingsHelper {
 
-    private static final String PREFS_NAME = "com.example.oneuiapp_preferences";
+    private static final String PREFSNAME = "com.example.oneuiapppreferences";
 
-    private static final String KEY_LANGUAGE_MODE = "language_mode";
-    private static final String KEY_THEME_MODE = "theme_mode";
-    private static final String KEY_FONT_MODE = "font_mode";
-    private static final String KEY_NOTIFICATIONS_ENABLED = "notifications_enabled";
-    private static final String KEY_PREVIEW_TEXT = "preview_text";
+    private static final String KEYLANGUAGEMODE = "language_mode";
+    private static final String KEYTHEMEMODE = "theme_mode";
+    private static final String KEYFONTMODE = "font_mode";
+    private static final String KEYNOTIFICATIONSENABLED = "notifications_enabled";
+    private static final String KEYPREVIEWTEXT = "preview_text";
 
     public static final int LANGUAGE_SYSTEM = 0;
     public static final int LANGUAGE_ARABIC = 1;
@@ -51,30 +40,33 @@ public class SettingsHelper {
 
     public SettingsHelper(Context context) {
         this.context = context.getApplicationContext();
-        this.prefs = this.context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        this.prefs = this.context.getSharedPreferences(PREFSNAME, Context.MODE_PRIVATE);
     }
 
-    // Language
+    // ---------------- Language ----------------
     public int getLanguageMode() {
-        String v = prefs.getString(KEY_LANGUAGE_MODE, String.valueOf(LANGUAGE_SYSTEM));
+        String v = prefs.getString(KEYLANGUAGEMODE, String.valueOf(LANGUAGE_SYSTEM));
         try { return Integer.parseInt(v); } catch (Exception e) { return LANGUAGE_SYSTEM; }
     }
+
     public void setLanguageMode(int mode) {
-        prefs.edit().putString(KEY_LANGUAGE_MODE, String.valueOf(mode)).apply();
+        prefs.edit().putString(KEYLANGUAGEMODE, String.valueOf(mode)).apply();
     }
+
     public void applyLanguage(Activity activity) {
-        // wrap + recreate handled by BaseActivity via wrapContext/attachBaseContext
         activity.recreate();
     }
 
-    // Theme
+    // ---------------- Theme ----------------
     public int getThemeMode() {
-        String v = prefs.getString(KEY_THEME_MODE, String.valueOf(THEME_SYSTEM));
+        String v = prefs.getString(KEYTHEMEMODE, String.valueOf(THEME_SYSTEM));
         try { return Integer.parseInt(v); } catch (Exception e) { return THEME_SYSTEM; }
     }
+
     public void setThemeMode(int mode) {
-        prefs.edit().putString(KEY_THEME_MODE, String.valueOf(mode)).apply();
+        prefs.edit().putString(KEYTHEMEMODE, String.valueOf(mode)).apply();
     }
+
     public void applyTheme() {
         int mode = getThemeMode();
         switch (mode) {
@@ -91,18 +83,18 @@ public class SettingsHelper {
         }
     }
 
-    // Font
+    // ---------------- Font ----------------
     public int getFontMode() {
-        String v = prefs.getString(KEY_FONT_MODE, String.valueOf(FONT_SYSTEM));
+        String v = prefs.getString(KEYFONTMODE, String.valueOf(FONT_SYSTEM));
         try { return Integer.parseInt(v); } catch (Exception e) { return FONT_SYSTEM; }
     }
+
     public void setFontMode(int mode) {
-        prefs.edit().putString(KEY_FONT_MODE, String.valueOf(mode)).apply();
+        prefs.edit().putString(KEYFONTMODE, String.valueOf(mode)).apply();
     }
 
     /**
-     * Public static getter used by FontHelper and other classes.
-     * Returns Typeface from res/font when a bundled font is selected, otherwise null to use system fonts.
+     * إرجاع Typeface المناسب حسب الإعدادات
      */
     public static Typeface getTypeface(Context ctx) {
         SettingsHelper sh = new SettingsHelper(ctx);
@@ -115,40 +107,42 @@ public class SettingsHelper {
                     return ResourcesCompat.getFont(ctx, R.font.samsung_one);
                 case FONT_SYSTEM:
                 default:
-                    return null;
+                    return null; // النظام الافتراضي
             }
         } catch (Exception e) {
-            // If resource missing or cannot load, fallback to null -> system default
             android.util.Log.w("SettingsHelper", "getTypeface failed, fallback to system", e);
             return null;
         }
     }
 
-    // Preview text
+    // ---------------- Preview text ----------------
     private String getPreviewTextInternal() {
-        String def = context.getString(R.string.settings_preview_text_default);
-        return prefs.getString(KEY_PREVIEW_TEXT, def);
+        String def = context.getString(R.string.settingspreviewtext_default);
+        return prefs.getString(KEYPREVIEWTEXT, def);
     }
+
     public static String getPreviewText(Context ctx) {
         SettingsHelper sh = new SettingsHelper(ctx);
         return sh.getPreviewTextInternal();
     }
+
     public void setPreviewText(String text) {
-        prefs.edit().putString(KEY_PREVIEW_TEXT, text == null ? "" : text).apply();
+        prefs.edit().putString(KEYPREVIEWTEXT, text == null ? "" : text).apply();
     }
 
-    // Notifications
+    // ---------------- Notifications ----------------
     public boolean areNotificationsEnabled() {
-        return prefs.getBoolean(KEY_NOTIFICATIONS_ENABLED, true);
-    }
-    public void setNotificationsEnabled(boolean enabled) {
-        prefs.edit().putBoolean(KEY_NOTIFICATIONS_ENABLED, enabled).apply();
+        return prefs.getBoolean(KEYNOTIFICATIONSENABLED, true);
     }
 
-    // Locale helpers used by BaseActivity / Application
-    public static java.util.Locale getLocale(Context ctx) {
-        SharedPreferences p = ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        String modeStr = p.getString(KEY_LANGUAGE_MODE, String.valueOf(LANGUAGE_SYSTEM));
+    public void setNotificationsEnabled(boolean enabled) {
+        prefs.edit().putBoolean(KEYNOTIFICATIONSENABLED, enabled).apply();
+    }
+
+    // ---------------- Locale helpers ----------------
+    public static Locale getLocale(Context ctx) {
+        SharedPreferences p = ctx.getSharedPreferences(PREFSNAME, Context.MODE_PRIVATE);
+        String modeStr = p.getString(KEYLANGUAGEMODE, String.valueOf(LANGUAGE_SYSTEM));
         int mode;
         try { mode = Integer.parseInt(modeStr); } catch (Exception e) { mode = LANGUAGE_SYSTEM; }
 
@@ -167,8 +161,8 @@ public class SettingsHelper {
 
     @SuppressWarnings("deprecation")
     public static Context wrapContext(Context context) {
-        SharedPreferences p = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        String modeStr = p.getString(KEY_LANGUAGE_MODE, String.valueOf(LANGUAGE_SYSTEM));
+        SharedPreferences p = context.getSharedPreferences(PREFSNAME, Context.MODE_PRIVATE);
+        String modeStr = p.getString(KEYLANGUAGEMODE, String.valueOf(LANGUAGE_SYSTEM));
         int mode;
         try { mode = Integer.parseInt(modeStr); } catch (Exception e) { mode = LANGUAGE_SYSTEM; }
 
@@ -202,4 +196,4 @@ public class SettingsHelper {
         SettingsHelper helper = new SettingsHelper(context);
         helper.applyTheme();
     }
-}
+    }
