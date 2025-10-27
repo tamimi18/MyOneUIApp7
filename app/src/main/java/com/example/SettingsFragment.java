@@ -164,7 +164,7 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Prefer
 
             Toast.makeText(
                     mContext,
-                    mContext.getString(R.string.settingspreviewtext) + " " +
+                    mContext.getString(R.string.settings_preview_text) + " " +
                             mContext.getString(android.R.string.ok),
                     Toast.LENGTH_SHORT
             ).show();
