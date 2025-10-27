@@ -3,12 +3,16 @@ package com.example.oneuiapp;
 import android.content.Context;
 import android.os.Build;
 import android.os.Bundle;
+import android.view.Menu;
+import android.view.MenuItem;
+
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -18,6 +22,7 @@ import androidx.appcompat.app.AlertDialog;
 
 /**
  * MainActivity - النسخة المحدثة مع زر عرض معلومات الخط (font metadata)
+ * تحكم بالرؤية بحيث تظهر أيقونة المعلومات فقط عند عرض FontViewerFragment (index 2)
  */
 public class MainActivity extends BaseActivity implements FontViewerFragment.OnFontChangedListener {
 
@@ -33,6 +38,9 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
 
     private String currentFontRealName;
     private String currentFontFileName;
+
+    // مرجع عنصر القائمة الخاص بمعلومات الخط لتمكين/تعطيل رؤيته
+    private MenuItem mFontMetaMenuItem;
 
     @Override
     protected void attachBaseContext(Context newBase) {
@@ -73,6 +81,16 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
         try {
             if (mDrawerLayout != null && mDrawerLayout.getToolbar() != null) {
                 mDrawerLayout.getToolbar().inflateMenu(R.menu.menu_main_font_meta);
+                // حفظ مرجع عنصر القائمة من الـ Menu في الـ Toolbar
+                Menu menu = mDrawerLayout.getToolbar().getMenu();
+                if (menu != null) {
+                    mFontMetaMenuItem = menu.findItem(R.id.action_font_meta);
+                    if (mFontMetaMenuItem != null) {
+                        // اجعله مخفياً افتراضياً؛ سنظهره عندما نعرض FontViewerFragment
+                        mFontMetaMenuItem.setVisible(false);
+                    }
+                }
+
                 mDrawerLayout.getToolbar().setOnMenuItemClickListener(item -> {
                     if (item.getItemId() == R.id.action_font_meta) {
                         showFontMetaFromFragment();
@@ -154,6 +172,14 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
         }
 
         transaction.commitNow();
+
+        // تحديث رؤية أيقونة معلومات الخط بعد تبديل الفِراغمنت
+        try {
+            if (mFontMetaMenuItem != null) {
+                mFontMetaMenuItem.setVisible(position == 2);
+            }
+        } catch (Exception ignored) {
+        }
     }
 
     private void updateDrawerTitle(int fragmentIndex) {
@@ -196,6 +222,14 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
 
         mDrawerLayout.setTitle(title);
         mDrawerLayout.setExpandedSubtitle(subtitle);
+
+        // تأكد من أن أيقونة المعلومات مرئية فقط عند شاشة Font Viewer (index 2)
+        try {
+            if (mFontMetaMenuItem != null) {
+                mFontMetaMenuItem.setVisible(fragmentIndex == 2);
+            }
+        } catch (Exception ignored) {
+        }
     }
 
     /**
@@ -285,4 +319,4 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
             updateDrawerTitle(position);
         }
     }
-    }
+                        }
