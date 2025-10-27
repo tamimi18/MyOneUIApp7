@@ -80,8 +80,8 @@
     <string name="settings_notifications_placeholder">Notifications feature coming soon</string>
     <string name="settings_notifications">Notifications</string>
     <string name="settings_notifications_description">Receive app notifications</string>
-    <string name="notifications_enabled">Notifications enabled</string>
-    <string name="notifications_disabled">Notifications disabled</string>
+    <string name="notificationsenabled">Notifications enabled</string>
+    <string name="notificationsdisabled">Notifications disabled</string>
 
     <!-- ═══════════════════════════════════════════════════════════════
          نصوص عارض الخطوط (Font Viewer)
