@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.View;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.preference.EditTextPreference;
@@ -12,6 +13,7 @@ import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceManager;
 import androidx.preference.SwitchPreferenceCompat;
+
 import dev.oneuiproject.oneui.widget.Toast;
 
 public class SettingsFragment extends PreferenceFragmentCompat implements Preference.OnPreferenceChangeListener {
@@ -98,21 +100,20 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Prefer
         String key = preference.getKey();
 
         if ("language_mode".equals(key)) {
-            String v = (String) newValue;
-            int mode = Integer.parseInt(v);
+            int mode = Integer.parseInt((String) newValue);
             new SettingsHelper(mContext).setLanguageMode(mode);
             requireActivity().recreate();
             return true;
+
         } else if ("theme_mode".equals(key)) {
-            String v = (String) newValue;
-            int mode = Integer.parseInt(v);
+            int mode = Integer.parseInt((String) newValue);
             SettingsHelper helper = new SettingsHelper(mContext);
             helper.setThemeMode(mode);
             helper.applyTheme();
             return true;
+
         } else if ("font_mode".equals(key)) {
-            String v = (String) newValue;
-            int mode = Integer.parseInt(v);
+            int mode = Integer.parseInt((String) newValue);
 
             SettingsHelper sh = new SettingsHelper(mContext);
             sh.setFontMode(mode);
@@ -123,7 +124,7 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Prefer
                 android.util.Log.e("SettingsFragment", "FontHelper.applyFont failed", e);
             }
 
-            // Notify all activities to recreate via MyApplication registry (broadcast)
+            // ✅ الآن نستدعي MyApplication.recreateAllActivities (النسخة الجديدة)
             MyApplication app = MyApplication.getInstance();
             if (app != null) {
                 app.recreateAllActivities();
@@ -132,19 +133,25 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Prefer
             }
 
             return true;
+
         } else if ("notifications_enabled".equals(key)) {
-            Boolean enabled = (Boolean) newValue;
+            boolean enabled = (Boolean) newValue;
             new SettingsHelper(mContext).setNotificationsEnabled(enabled);
-            String msg = enabled ? mContext.getString(R.string.notifications_enabled) : mContext.getString(R.string.notifications_disabled);
+            String msg = enabled ? mContext.getString(R.string.notificationsenabled)
+                                 : mContext.getString(R.string.notificationsdisabled);
             Toast.makeText(mContext, msg, Toast.LENGTH_SHORT).show();
             return true;
+
         } else if ("preview_text".equals(key)) {
             String text = (String) newValue;
             new SettingsHelper(mContext).setPreviewText(text);
-            Toast.makeText(mContext, mContext.getString(R.string.settings_preview_text) + " " + mContext.getString(android.R.string.ok), Toast.LENGTH_SHORT).show();
+            Toast.makeText(mContext,
+                    mContext.getString(R.string.settingspreviewtext) + " " +
+                    mContext.getString(android.R.string.ok),
+                    Toast.LENGTH_SHORT).show();
             return true;
         }
 
         return true;
     }
-}
+                                       }
