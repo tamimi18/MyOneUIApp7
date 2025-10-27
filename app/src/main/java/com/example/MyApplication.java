@@ -2,40 +2,52 @@ package com.example.oneuiapp;
 
 import android.app.Application;
 import android.content.Context;
+import android.util.Log;
 
-/**
- * MyApplication: applies theme and font early so Activities pick them up.
- *
- * Replace your existing app/src/main/java/com/example/oneuiapp/MyApplication.java with this file.
- */
 public class MyApplication extends Application {
+
+    private static final String TAG = "MyApplication";
+    private static MyApplication sInstance;
 
     @Override
     protected void attachBaseContext(Context base) {
-        // Apply language wrapping early
+        // apply locale wrapping early
         super.attachBaseContext(SettingsHelper.wrapContext(base));
-        // Try to apply font as early as possible using base context
+        sInstance = this;
         try {
             FontHelper.applyFont(base);
         } catch (Exception e) {
-            android.util.Log.e("MyApplication", "applyFont failed in attachBaseContext", e);
+            Log.e(TAG, "applyFont failed in attachBaseContext", e);
         }
     }
 
     @Override
     public void onCreate() {
         super.onCreate();
+        sInstance = this;
 
         CrashHandler.init(this);
-
-        // Apply theme setting before activities are created
         SettingsHelper.initializeFromSettings(this);
 
-        // Ensure font is applied when app process starts
         try {
             FontHelper.applyFont(this);
         } catch (Exception e) {
-            android.util.Log.e("MyApplication", "applyFont failed in onCreate", e);
+            Log.e(TAG, "applyFont failed in onCreate", e);
+        }
+    }
+
+    public static MyApplication getInstance() {
+        return sInstance;
+    }
+
+    /**
+     * Best-effort notify all activities to recreate by broadcasting a font-change action.
+     */
+    public void recreateAllActivities() {
+        try {
+            FontChangeBroadcaster.sendFontChangeBroadcast(this);
+        } catch (Exception e) {
+            Log.e(TAG, "recreateAllActivities failed", e);
         }
     }
 }
