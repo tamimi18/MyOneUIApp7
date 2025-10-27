@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.View;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.preference.EditTextPreference;
@@ -12,20 +13,22 @@ import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceManager;
 import androidx.preference.SwitchPreferenceCompat;
+
 import dev.oneuiproject.oneui.widget.Toast;
 
 /**
- * SettingsFragment - شاشة الإعدادات
- * 
- * الإصلاحات:
- * 1. حفظ نص المعاينة يتم مباشرة
- * 2. FontViewerFragment ستستقبل التغيير تلقائياً عبر onResume()
+ * Complete SettingsFragment that ensures font selection applies immediately.
+ *
+ * Replace your existing app/src/main/java/com/example/oneuiapp/SettingsFragment.java with this file.
+ *
+ * Key changes:
+ * - On font_mode change: SettingsHelper.setFontMode(...), call FontHelper.applyFont(context) and then
+ *   requireActivity().recreate() so Activity and its attached contexts re-read the Typeface fields.
  */
-public class SettingsFragment extends PreferenceFragmentCompat 
-        implements Preference.OnPreferenceChangeListener {
+public class SettingsFragment extends PreferenceFragmentCompat implements Preference.OnPreferenceChangeListener {
 
     private Context mContext;
-    
+
     private ListPreference languagePreference;
     private ListPreference themePreference;
     private ListPreference fontPreference;
@@ -44,32 +47,21 @@ public class SettingsFragment extends PreferenceFragmentCompat
         syncSettingsHelper();
     }
 
-    /**
-     * مزامنة SettingsHelper مع PreferenceManager
-     */
     private void syncSettingsHelper() {
         try {
             SharedPreferences defaultPrefs = PreferenceManager.getDefaultSharedPreferences(mContext);
             SharedPreferences oldPrefs = mContext.getSharedPreferences("AppSettings", Context.MODE_PRIVATE);
-            
+
             if (oldPrefs.getAll().size() > 0 && defaultPrefs.getAll().size() == 0) {
                 SharedPreferences.Editor editor = defaultPrefs.edit();
-                
                 for (String key : oldPrefs.getAll().keySet()) {
                     Object value = oldPrefs.getAll().get(key);
-                    
-                    if (value instanceof String) {
-                        editor.putString(key, (String) value);
-                    } else if (value instanceof Integer) {
-                        editor.putString(key, String.valueOf(value));
-                    } else if (value instanceof Boolean) {
-                        editor.putBoolean(key, (Boolean) value);
-                    }
+                    if (value instanceof String) editor.putString(key, (String) value);
+                    else if (value instanceof Integer) editor.putString(key, String.valueOf(value));
+                    else if (value instanceof Boolean) editor.putBoolean(key, (Boolean) value);
                 }
-                
                 editor.apply();
             }
-            
         } catch (Exception e) {
             android.util.Log.e("SettingsFragment", "Error syncing preferences", e);
         }
@@ -78,7 +70,6 @@ public class SettingsFragment extends PreferenceFragmentCompat
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        
         initPreferences();
         setupPreferenceListeners();
     }
@@ -92,120 +83,74 @@ public class SettingsFragment extends PreferenceFragmentCompat
     }
 
     private void setupPreferenceListeners() {
-        if (languagePreference != null) {
-            languagePreference.setOnPreferenceChangeListener(this);
-        }
-        
-        if (themePreference != null) {
-            themePreference.setOnPreferenceChangeListener(this);
-        }
-        
-        if (fontPreference != null) {
-            fontPreference.setOnPreferenceChangeListener(this);
-        }
-        
-        if (notificationsPreference != null) {
-            notificationsPreference.setOnPreferenceChangeListener(this);
-        }
-        
-        if (previewTextPreference != null) {
-            previewTextPreference.setOnPreferenceChangeListener(this);
-        }
+        if (languagePreference != null) languagePreference.setOnPreferenceChangeListener(this);
+        if (themePreference != null) themePreference.setOnPreferenceChangeListener(this);
+        if (fontPreference != null) fontPreference.setOnPreferenceChangeListener(this);
+        if (notificationsPreference != null) notificationsPreference.setOnPreferenceChangeListener(this);
+        if (previewTextPreference != null) previewTextPreference.setOnPreferenceChangeListener(this);
     }
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        
         try {
-            android.util.TypedValue typedValue = new android.util.TypedValue();
-            mContext.getTheme().resolveAttribute(android.R.attr.colorBackground, typedValue, true);
-            int backgroundColor = typedValue.data;
-            getView().setBackgroundColor(backgroundColor);
+            android.util.TypedValue tv = new android.util.TypedValue();
+            mContext.getTheme().resolveAttribute(android.R.attr.colorBackground, tv, true);
+            int bg = tv.data;
+            getView().setBackgroundColor(bg);
         } catch (Exception e) {
             getView().setBackgroundColor(0xFFFFFFFF);
         }
-        
         getListView().seslSetLastRoundedCorner(true);
     }
 
     @Override
     public boolean onPreferenceChange(Preference preference, Object newValue) {
         String key = preference.getKey();
-        
+
         if ("language_mode".equals(key)) {
-            String newLanguageMode = (String) newValue;
-            int languageMode = Integer.parseInt(newLanguageMode);
-            
-            new SettingsHelper(mContext).setLanguageMode(languageMode);
+            String v = (String) newValue;
+            int mode = Integer.parseInt(v);
+            new SettingsHelper(mContext).setLanguageMode(mode);
             requireActivity().recreate();
-            
             return true;
-        }
-        
-        else if ("theme_mode".equals(key)) {
-            String newThemeMode = (String) newValue;
-            int themeMode = Integer.parseInt(newThemeMode);
-            
+        } else if ("theme_mode".equals(key)) {
+            String v = (String) newValue;
+            int mode = Integer.parseInt(v);
             SettingsHelper helper = new SettingsHelper(mContext);
-            helper.setThemeMode(themeMode);
+            helper.setThemeMode(mode);
             helper.applyTheme();
-            
             return true;
-        }
-        
-        else if ("font_mode".equals(key)) {
-            String newFontMode = (String) newValue;
-            int fontMode = Integer.parseInt(newFontMode);
-            
-            new SettingsHelper(mContext).setFontMode(fontMode);
-            FontHelper.applyFont(mContext);
+        } else if ("font_mode".equals(key)) {
+            String v = (String) newValue;
+            int mode = Integer.parseInt(v);
+
+            SettingsHelper sh = new SettingsHelper(mContext);
+            sh.setFontMode(mode);
+
+            // Apply immediately to Typeface static fields and recreate activity to refresh UI.
+            try {
+                FontHelper.applyFont(mContext.getApplicationContext());
+            } catch (Exception e) {
+                android.util.Log.e("SettingsFragment", "FontHelper.applyFont failed", e);
+            }
+
+            // Recreate activity so views re-read Typeface and theme.
             requireActivity().recreate();
-            
+            return true;
+        } else if ("notifications_enabled".equals(key)) {
+            Boolean enabled = (Boolean) newValue;
+            new SettingsHelper(mContext).setNotificationsEnabled(enabled);
+            String msg = enabled ? mContext.getString(R.string.notifications_enabled) : mContext.getString(R.string.notifications_disabled);
+            Toast.makeText(mContext, msg, Toast.LENGTH_SHORT).show();
+            return true;
+        } else if ("preview_text".equals(key)) {
+            String text = (String) newValue;
+            new SettingsHelper(mContext).setPreviewText(text);
+            Toast.makeText(mContext, mContext.getString(R.string.settings_preview_text) + " " + mContext.getString(android.R.string.ok), Toast.LENGTH_SHORT).show();
             return true;
         }
-        
-        else if ("notifications_enabled".equals(key)) {
-            Boolean isEnabled = (Boolean) newValue;
-            
-            new SettingsHelper(mContext).setNotificationsEnabled(isEnabled);
-            
-            String message = isEnabled 
-                    ? mContext.getString(R.string.notifications_enabled)
-                    : mContext.getString(R.string.notifications_disabled);
-            Toast.makeText(mContext, message, Toast.LENGTH_SHORT).show();
-            
-            return true;
-        }
-        
-        /**
-         * حفظ نص المعاينة الجديد
-         * 
-         * الطريقة:
-         * 1. نحفظ النص مباشرة في SharedPreferences
-         * 2. لا نحتاج لعمل أي شيء إضافي
-         * 3. عندما يعود المستخدم إلى FontViewerFragment
-         *    سيتم استدعاء onResume() تلقائياً
-         * 4. onResume() ستلاحظ تغيير النص وتحدّث المعاينة
-         */
-        else if ("preview_text".equals(key)) {
-            String newPreviewText = (String) newValue;
-            
-            // حفظ النص الجديد
-            new SettingsHelper(mContext).setPreviewText(newPreviewText);
-            
-            // عرض رسالة تأكيد
-            Toast.makeText(mContext, 
-                mContext.getString(R.string.settings_preview_text) + " " +
-                mContext.getString(android.R.string.ok), 
-                Toast.LENGTH_SHORT).show();
-            
-            // ملاحظة: لا حاجة لإعادة إنشاء Activity أو إشعار Fragment
-            // لأن FontViewerFragment.onResume() ستتحقق من التغيير تلقائياً
-            
-            return true;
-        }
-        
+
         return true;
     }
-        }
+                    }
