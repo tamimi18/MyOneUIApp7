@@ -80,8 +80,8 @@
     <string name="settings_notifications_placeholder">ميزة الإشعارات قادمة قريبًا</string>
     <string name="settings_notifications">الإشعارات</string>
     <string name="settings_notifications_description">استقبال إشعارات التطبيق</string>
-    <string name="notifications_enabled">الإشعارات مفعّلة</string>
-    <string name="notifications_disabled">الإشعارات معطّلة</string>
+    <string name="notificationsenabled">الإشعارات مفعّلة</string>
+    <string name="notificationsdisabled">الإشعارات معطّلة</string>
 
     <!-- ═══════════════════════════════════════════════════════════════
          نصوص عارض الخطوط (Font Viewer)
