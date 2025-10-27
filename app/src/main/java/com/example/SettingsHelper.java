@@ -93,9 +93,6 @@ public class SettingsHelper {
         prefs.edit().putString(KEYFONTMODE, String.valueOf(mode)).apply();
     }
 
-    /**
-     * إرجاع Typeface المناسب حسب الإعدادات
-     */
     public static Typeface getTypeface(Context ctx) {
         SettingsHelper sh = new SettingsHelper(ctx);
         int mode = sh.getFontMode();
@@ -107,7 +104,7 @@ public class SettingsHelper {
                     return ResourcesCompat.getFont(ctx, R.font.samsung_one);
                 case FONT_SYSTEM:
                 default:
-                    return null; // النظام الافتراضي
+                    return null;
             }
         } catch (Exception e) {
             android.util.Log.w("SettingsHelper", "getTypeface failed, fallback to system", e);
@@ -117,6 +114,7 @@ public class SettingsHelper {
 
     // ---------------- Preview text ----------------
     private String getPreviewTextInternal() {
+        // ✅ الآن يستدعي resource الصحيح
         String def = context.getString(R.string.settingspreviewtext_default);
         return prefs.getString(KEYPREVIEWTEXT, def);
     }
