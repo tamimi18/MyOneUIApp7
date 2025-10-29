@@ -8,7 +8,6 @@ import android.content.res.Resources;
 import android.graphics.Typeface;
 import android.os.Build;
 
-import androidx.appcompat.app.AppCompatDelegate;
 import androidx.core.content.res.ResourcesCompat;
 
 import java.util.Locale;
@@ -18,18 +17,13 @@ public class SettingsHelper {
     private static final String PREFSNAME = "com.example.oneuiapppreferences";
 
     private static final String KEYLANGUAGEMODE = "language_mode";
-    private static final String KEYTHEMEMODE = "theme_mode";
     private static final String KEYFONTMODE = "font_mode";
-    private static final String KEYNOTIFICATIONSENABLED = "notifications_enabled";
     private static final String KEYPREVIEWTEXT = "preview_text";
+    private static final String KEYNOTIFICATIONSENABLED = "notifications_enabled";
 
     public static final int LANGUAGE_SYSTEM = 0;
     public static final int LANGUAGE_ARABIC = 1;
     public static final int LANGUAGE_ENGLISH = 2;
-
-    public static final int THEME_SYSTEM = 0;
-    public static final int THEME_LIGHT = 1;
-    public static final int THEME_DARK = 2;
 
     public static final int FONT_SYSTEM = 0;
     public static final int FONT_WF = 1;
@@ -43,7 +37,7 @@ public class SettingsHelper {
         this.prefs = this.context.getSharedPreferences(PREFSNAME, Context.MODE_PRIVATE);
     }
 
-    // ---------------- Language ----------------
+    // Language
     public int getLanguageMode() {
         String v = prefs.getString(KEYLANGUAGEMODE, String.valueOf(LANGUAGE_SYSTEM));
         try { return Integer.parseInt(v); } catch (Exception e) { return LANGUAGE_SYSTEM; }
@@ -72,33 +66,7 @@ public class SettingsHelper {
         }
     }
 
-    // ---------------- Theme ----------------
-    public int getThemeMode() {
-        String v = prefs.getString(KEYTHEMEMODE, String.valueOf(THEME_SYSTEM));
-        try { return Integer.parseInt(v); } catch (Exception e) { return THEME_SYSTEM; }
-    }
-
-    public void setThemeMode(int mode) {
-        prefs.edit().putString(KEYTHEMEMODE, String.valueOf(mode)).apply();
-    }
-
-    public void applyTheme() {
-        int mode = getThemeMode();
-        switch (mode) {
-            case THEME_LIGHT:
-                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
-                break;
-            case THEME_DARK:
-                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
-                break;
-            case THEME_SYSTEM:
-            default:
-                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
-                break;
-        }
-    }
-
-    // ---------------- Font ----------------
+    // Font
     public int getFontMode() {
         String v = prefs.getString(KEYFONTMODE, String.valueOf(FONT_SYSTEM));
         try { return Integer.parseInt(v); } catch (Exception e) { return FONT_SYSTEM; }
@@ -127,7 +95,7 @@ public class SettingsHelper {
         }
     }
 
-    // ---------------- Preview text ----------------
+    // Preview text
     public void setPreviewText(String text) {
         prefs.edit().putString(KEYPREVIEWTEXT, text == null ? "" : text).apply();
     }
@@ -138,7 +106,7 @@ public class SettingsHelper {
         return sh.prefs.getString(KEYPREVIEWTEXT, def);
     }
 
-    // ---------------- Notifications ----------------
+    // Notifications
     public boolean areNotificationsEnabled() {
         return prefs.getBoolean(KEYNOTIFICATIONSENABLED, true);
     }
@@ -147,7 +115,7 @@ public class SettingsHelper {
         prefs.edit().putBoolean(KEYNOTIFICATIONSENABLED, enabled).apply();
     }
 
-    // ---------------- Context wrapping ----------------
+    // Context wrapping: فقط Locale هنا. لا نُغلّف بالسياق الخاص بالخط أثناء attachBaseContext
     public static Context wrapContext(Context context) {
         Locale locale = getLocale(context);
         Locale.setDefault(locale);
@@ -155,25 +123,16 @@ public class SettingsHelper {
         Configuration config = new Configuration(context.getResources().getConfiguration());
         config.setLocale(locale);
 
-        Context newContext;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            newContext = context.createConfigurationContext(config);
+            return context.createConfigurationContext(config);
         } else {
             context.getResources().updateConfiguration(config, context.getResources().getDisplayMetrics());
-            newContext = context;
-        }
-
-        // ✅ تطبيق الخط عبر TypefaceContextWrapper
-        Typeface tf = getTypeface(context);
-        if (tf != null) {
-            return new TypefaceContextWrapper(newContext, tf);
-        } else {
-            return newContext;
+            return context;
         }
     }
 
-    public static void initializeFromSettings(Context context) {
-        SettingsHelper helper = new SettingsHelper(context);
-        helper.applyTheme();
+    // إذا غيّرت اللغة من الإعدادات، أعد إنشاء الـ Activity
+    public void applyLanguage(Activity activity) {
+        activity.recreate();
     }
-}
+                }
