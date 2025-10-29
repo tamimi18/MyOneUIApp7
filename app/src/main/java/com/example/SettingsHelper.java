@@ -8,7 +8,6 @@ import android.content.res.Resources;
 import android.graphics.Typeface;
 import android.os.Build;
 
-import androidx.appcompat.app.AppCompatDelegate;
 import androidx.core.content.res.ResourcesCompat;
 
 import java.util.Locale;
@@ -18,18 +17,13 @@ public class SettingsHelper {
     private static final String PREFSNAME = "com.example.oneuiapppreferences";
 
     private static final String KEYLANGUAGEMODE = "language_mode";
-    private static final String KEYTHEMEMODE = "theme_mode";
     private static final String KEYFONTMODE = "font_mode";
-    private static final String KEYNOTIFICATIONSENABLED = "notifications_enabled";
     private static final String KEYPREVIEWTEXT = "preview_text";
+    private static final String KEYNOTIFICATIONSENABLED = "notifications_enabled";
 
     public static final int LANGUAGE_SYSTEM = 0;
     public static final int LANGUAGE_ARABIC = 1;
     public static final int LANGUAGE_ENGLISH = 2;
-
-    public static final int THEME_SYSTEM = 0;
-    public static final int THEME_LIGHT = 1;
-    public static final int THEME_DARK = 2;
 
     public static final int FONT_SYSTEM = 0;
     public static final int FONT_WF = 1;
@@ -43,7 +37,7 @@ public class SettingsHelper {
         this.prefs = this.context.getSharedPreferences(PREFSNAME, Context.MODE_PRIVATE);
     }
 
-    // ---------------- Language ----------------
+    // Language
     public int getLanguageMode() {
         String v = prefs.getString(KEYLANGUAGEMODE, String.valueOf(LANGUAGE_SYSTEM));
         try { return Integer.parseInt(v); } catch (Exception e) { return LANGUAGE_SYSTEM; }
@@ -53,37 +47,26 @@ public class SettingsHelper {
         prefs.edit().putString(KEYLANGUAGEMODE, String.valueOf(mode)).apply();
     }
 
-    public void applyLanguage(Activity activity) {
-        activity.recreate();
-    }
+    public static Locale getLocale(Context ctx) {
+        SharedPreferences p = ctx.getSharedPreferences(PREFSNAME, Context.MODE_PRIVATE);
+        String modeStr = p.getString(KEYLANGUAGEMODE, String.valueOf(LANGUAGE_SYSTEM));
+        int mode;
+        try { mode = Integer.parseInt(modeStr); } catch (Exception e) { mode = LANGUAGE_SYSTEM; }
 
-    // ---------------- Theme ----------------
-    public int getThemeMode() {
-        String v = prefs.getString(KEYTHEMEMODE, String.valueOf(THEME_SYSTEM));
-        try { return Integer.parseInt(v); } catch (Exception e) { return THEME_SYSTEM; }
-    }
-
-    public void setThemeMode(int mode) {
-        prefs.edit().putString(KEYTHEMEMODE, String.valueOf(mode)).apply();
-    }
-
-    public void applyTheme() {
-        int mode = getThemeMode();
         switch (mode) {
-            case THEME_LIGHT:
-                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
-                break;
-            case THEME_DARK:
-                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
-                break;
-            case THEME_SYSTEM:
+            case LANGUAGE_ARABIC: return new Locale("ar");
+            case LANGUAGE_ENGLISH: return new Locale("en");
+            case LANGUAGE_SYSTEM:
             default:
-                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
-                break;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    return Resources.getSystem().getConfiguration().getLocales().get(0);
+                } else {
+                    return Resources.getSystem().getConfiguration().locale;
+                }
         }
     }
 
-    // ---------------- Font ----------------
+    // Font
     public int getFontMode() {
         String v = prefs.getString(KEYFONTMODE, String.valueOf(FONT_SYSTEM));
         try { return Integer.parseInt(v); } catch (Exception e) { return FONT_SYSTEM; }
@@ -112,23 +95,18 @@ public class SettingsHelper {
         }
     }
 
-    // ---------------- Preview text ----------------
-    private String getPreviewTextInternal() {
-        // ✅ الآن يستدعي resource الصحيح
-        String def = context.getString(R.string.settings_preview_text_default);
-        return prefs.getString(KEYPREVIEWTEXT, def);
-    }
-
-    public static String getPreviewText(Context ctx) {
-        SettingsHelper sh = new SettingsHelper(ctx);
-        return sh.getPreviewTextInternal();
-    }
-
+    // Preview text
     public void setPreviewText(String text) {
         prefs.edit().putString(KEYPREVIEWTEXT, text == null ? "" : text).apply();
     }
 
-    // ---------------- Notifications ----------------
+    public static String getPreviewText(Context ctx) {
+        SettingsHelper sh = new SettingsHelper(ctx);
+        String def = ctx.getString(R.string.settings_preview_text_default);
+        return sh.prefs.getString(KEYPREVIEWTEXT, def);
+    }
+
+    // Notifications
     public boolean areNotificationsEnabled() {
         return prefs.getBoolean(KEYNOTIFICATIONSENABLED, true);
     }
@@ -137,48 +115,11 @@ public class SettingsHelper {
         prefs.edit().putBoolean(KEYNOTIFICATIONSENABLED, enabled).apply();
     }
 
-    // ---------------- Locale helpers ----------------
-    public static Locale getLocale(Context ctx) {
-        SharedPreferences p = ctx.getSharedPreferences(PREFSNAME, Context.MODE_PRIVATE);
-        String modeStr = p.getString(KEYLANGUAGEMODE, String.valueOf(LANGUAGE_SYSTEM));
-        int mode;
-        try { mode = Integer.parseInt(modeStr); } catch (Exception e) { mode = LANGUAGE_SYSTEM; }
-
-        switch (mode) {
-            case LANGUAGE_ARABIC: return new Locale("ar");
-            case LANGUAGE_ENGLISH: return new Locale("en");
-            case LANGUAGE_SYSTEM:
-            default:
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                    return Resources.getSystem().getConfiguration().getLocales().get(0);
-                } else {
-                    return Resources.getSystem().getConfiguration().locale;
-                }
-        }
-    }
-
-    @SuppressWarnings("deprecation")
+    // Context wrapping: فقط Locale هنا. لا نُغلّف بالسياق الخاص بالخط أثناء attachBaseContext
     public static Context wrapContext(Context context) {
-        SharedPreferences p = context.getSharedPreferences(PREFSNAME, Context.MODE_PRIVATE);
-        String modeStr = p.getString(KEYLANGUAGEMODE, String.valueOf(LANGUAGE_SYSTEM));
-        int mode;
-        try { mode = Integer.parseInt(modeStr); } catch (Exception e) { mode = LANGUAGE_SYSTEM; }
-
-        Locale locale;
-        switch (mode) {
-            case LANGUAGE_ARABIC: locale = new Locale("ar"); break;
-            case LANGUAGE_ENGLISH: locale = new Locale("en"); break;
-            case LANGUAGE_SYSTEM:
-            default:
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                    locale = Resources.getSystem().getConfiguration().getLocales().get(0);
-                } else {
-                    locale = Resources.getSystem().getConfiguration().locale;
-                }
-                break;
-        }
-
+        Locale locale = getLocale(context);
         Locale.setDefault(locale);
+
         Configuration config = new Configuration(context.getResources().getConfiguration());
         config.setLocale(locale);
 
@@ -190,8 +131,8 @@ public class SettingsHelper {
         }
     }
 
-    public static void initializeFromSettings(Context context) {
-        SettingsHelper helper = new SettingsHelper(context);
-        helper.applyTheme();
+    // إذا غيّرت اللغة من الإعدادات، أعد إنشاء الـ Activity
+    public void applyLanguage(Activity activity) {
+        activity.recreate();
     }
-    }
+}
