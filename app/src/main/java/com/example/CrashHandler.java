@@ -91,4 +91,4 @@ public class CrashHandler implements Thread.UncaughtExceptionHandler {
             System.exit(2);
         }
     }
-              }
+}
