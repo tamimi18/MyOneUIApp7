@@ -53,8 +53,23 @@ public class SettingsHelper {
         prefs.edit().putString(KEYLANGUAGEMODE, String.valueOf(mode)).apply();
     }
 
-    public void applyLanguage(Activity activity) {
-        activity.recreate();
+    public static Locale getLocale(Context ctx) {
+        SharedPreferences p = ctx.getSharedPreferences(PREFSNAME, Context.MODE_PRIVATE);
+        String modeStr = p.getString(KEYLANGUAGEMODE, String.valueOf(LANGUAGE_SYSTEM));
+        int mode;
+        try { mode = Integer.parseInt(modeStr); } catch (Exception e) { mode = LANGUAGE_SYSTEM; }
+
+        switch (mode) {
+            case LANGUAGE_ARABIC: return new Locale("ar");
+            case LANGUAGE_ENGLISH: return new Locale("en");
+            case LANGUAGE_SYSTEM:
+            default:
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    return Resources.getSystem().getConfiguration().getLocales().get(0);
+                } else {
+                    return Resources.getSystem().getConfiguration().locale;
+                }
+        }
     }
 
     // ---------------- Theme ----------------
@@ -113,14 +128,14 @@ public class SettingsHelper {
     }
 
     // ---------------- Preview text ----------------
+    public void setPreviewText(String text) {
+        prefs.edit().putString(KEYPREVIEWTEXT, text == null ? "" : text).apply();
+    }
+
     public static String getPreviewText(Context ctx) {
         SettingsHelper sh = new SettingsHelper(ctx);
         String def = ctx.getString(R.string.settings_preview_text_default);
         return sh.prefs.getString(KEYPREVIEWTEXT, def);
-    }
-
-    public void setPreviewText(String text) {
-        prefs.edit().putString(KEYPREVIEWTEXT, text == null ? "" : text).apply();
     }
 
     // ---------------- Notifications ----------------
@@ -132,27 +147,7 @@ public class SettingsHelper {
         prefs.edit().putBoolean(KEYNOTIFICATIONSENABLED, enabled).apply();
     }
 
-    // ---------------- Locale helpers ----------------
-    public static Locale getLocale(Context ctx) {
-        SharedPreferences p = ctx.getSharedPreferences(PREFSNAME, Context.MODE_PRIVATE);
-        String modeStr = p.getString(KEYLANGUAGEMODE, String.valueOf(LANGUAGE_SYSTEM));
-        int mode;
-        try { mode = Integer.parseInt(modeStr); } catch (Exception e) { mode = LANGUAGE_SYSTEM; }
-
-        switch (mode) {
-            case LANGUAGE_ARABIC: return new Locale("ar");
-            case LANGUAGE_ENGLISH: return new Locale("en");
-            case LANGUAGE_SYSTEM:
-            default:
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                    return Resources.getSystem().getConfiguration().getLocales().get(0);
-                } else {
-                    return Resources.getSystem().getConfiguration().locale;
-                }
-        }
-    }
-
-    @SuppressWarnings("deprecation")
+    // ---------------- Context wrapping ----------------
     public static Context wrapContext(Context context) {
         Locale locale = getLocale(context);
         Locale.setDefault(locale);
@@ -160,11 +155,20 @@ public class SettingsHelper {
         Configuration config = new Configuration(context.getResources().getConfiguration());
         config.setLocale(locale);
 
+        Context newContext;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            return context.createConfigurationContext(config);
+            newContext = context.createConfigurationContext(config);
         } else {
             context.getResources().updateConfiguration(config, context.getResources().getDisplayMetrics());
-            return context;
+            newContext = context;
+        }
+
+        // ✅ تطبيق الخط عبر TypefaceContextWrapper
+        Typeface tf = getTypeface(context);
+        if (tf != null) {
+            return new TypefaceContextWrapper(newContext, tf);
+        } else {
+            return newContext;
         }
     }
 
@@ -172,4 +176,4 @@ public class SettingsHelper {
         SettingsHelper helper = new SettingsHelper(context);
         helper.applyTheme();
     }
-                    }
+}
