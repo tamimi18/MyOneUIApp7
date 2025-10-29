@@ -111,6 +111,7 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Prefer
         if ("language_mode".equals(key)) {
             int mode = Integer.parseInt((String) newValue);
             new SettingsHelper(mContext).setLanguageMode(mode);
+            // BaseActivity تتكفل بالـ wrap، هنا نعيد إنشاء الـ Activity
             requireActivity().recreate();
             return true;
 
@@ -119,26 +120,37 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Prefer
             SettingsHelper helper = new SettingsHelper(mContext);
             helper.setThemeMode(mode);
             helper.applyTheme();
+            // عادة لا نحتاج recreate فوري، لكن يمكنك إضافته لو أردت
             return true;
 
         } else if ("font_mode".equals(key)) {
             int mode = Integer.parseInt((String) newValue);
+
             SettingsHelper sh = new SettingsHelper(mContext);
             sh.setFontMode(mode);
 
-            // لم نعد بحاجة إلى FontHelper.applyFont()، يكفي إعادة إنشاء الأنشطة
+            try {
+                // تطبيق الخط على مستوى Typeface
+                FontHelper.applyFont(mContext.getApplicationContext());
+            } catch (Exception e) {
+                android.util.Log.e("SettingsFragment", "FontHelper.applyFont failed", e);
+            }
+
+            // إعادة إنشاء كل الأنشطة عبر MyApplication (بدلاً من broadcast)
             MyApplication app = MyApplication.getInstance();
             if (app != null) {
                 app.recreateAllActivities();
             } else {
                 requireActivity().recreate();
             }
+
             return true;
 
         } else if ("notifications_enabled".equals(key)) {
             boolean enabled = (Boolean) newValue;
             new SettingsHelper(mContext).setNotificationsEnabled(enabled);
 
+            // استخدام الموارد الصحيحة الموجودة في strings.xml
             String msg = enabled
                     ? mContext.getString(R.string.notifications_enabled)
                     : mContext.getString(R.string.notifications_disabled);
@@ -161,4 +173,4 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Prefer
 
         return true;
     }
-}
+    }

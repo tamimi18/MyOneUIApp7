@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
 import android.os.Bundle;
+import android.util.Log;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
@@ -19,9 +20,14 @@ public class MyApplication extends Application {
 
     @Override
     protected void attachBaseContext(Context base) {
-        // نغلف الـ Context بالـ Locale + Font مبكرًا
+        // apply locale wrapping early
         super.attachBaseContext(SettingsHelper.wrapContext(base));
         sInstance = this;
+        try {
+            FontHelper.applyFont(base);
+        } catch (Exception e) {
+            Log.e(TAG, "applyFont failed in attachBaseContext", e);
+        }
     }
 
     @Override
@@ -29,19 +35,22 @@ public class MyApplication extends Application {
         super.onCreate();
         sInstance = this;
 
-        // تهيئة الـ CrashHandler
         CrashHandler.init(this);
-
-        // تطبيق الثيم من الإعدادات
         SettingsHelper.initializeFromSettings(this);
+
+        try {
+            FontHelper.applyFont(this);
+        } catch (Exception e) {
+            Log.e(TAG, "applyFont failed in onCreate", e);
+        }
 
         // تسجيل الأنشطة
         registerActivityLifecycleCallbacks(new ActivityLifecycleCallbacks() {
             @Override
             public void onActivityCreated(Activity activity, Bundle savedInstanceState) {
                 activities.add(new WeakReference<>(activity));
-                // لم نعد بحاجة إلى FontHelper.applyFont(activity)
-                // لأن BaseActivity + SettingsHelper.wrapContext يتكفلان بالخط
+                // تطبيق الخط مباشرة عند إنشاء أي Activity
+                FontHelper.applyFont(activity);
             }
 
             @Override public void onActivityStarted(Activity activity) {}

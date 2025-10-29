@@ -2,16 +2,11 @@ package com.example.oneuiapp;
 
 import android.app.Activity;
 import android.content.Context;
-import android.content.ContextWrapper;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.graphics.Typeface;
 import android.os.Build;
-import android.util.AttributeSet;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatDelegate;
 import androidx.core.content.res.ResourcesCompat;
@@ -119,6 +114,7 @@ public class SettingsHelper {
 
     // ---------------- Preview text ----------------
     private String getPreviewTextInternal() {
+        // ✅ الآن يستدعي resource الصحيح
         String def = context.getString(R.string.settings_preview_text_default);
         return prefs.getString(KEYPREVIEWTEXT, def);
     }
@@ -141,12 +137,29 @@ public class SettingsHelper {
         prefs.edit().putBoolean(KEYNOTIFICATIONSENABLED, enabled).apply();
     }
 
-    // ---------------- Locale + Font wrapper ----------------
+    // ---------------- Locale helpers ----------------
+    public static Locale getLocale(Context ctx) {
+        SharedPreferences p = ctx.getSharedPreferences(PREFSNAME, Context.MODE_PRIVATE);
+        String modeStr = p.getString(KEYLANGUAGEMODE, String.valueOf(LANGUAGE_SYSTEM));
+        int mode;
+        try { mode = Integer.parseInt(modeStr); } catch (Exception e) { mode = LANGUAGE_SYSTEM; }
+
+        switch (mode) {
+            case LANGUAGE_ARABIC: return new Locale("ar");
+            case LANGUAGE_ENGLISH: return new Locale("en");
+            case LANGUAGE_SYSTEM:
+            default:
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    return Resources.getSystem().getConfiguration().getLocales().get(0);
+                } else {
+                    return Resources.getSystem().getConfiguration().locale;
+                }
+        }
+    }
+
     @SuppressWarnings("deprecation")
     public static Context wrapContext(Context context) {
         SharedPreferences p = context.getSharedPreferences(PREFSNAME, Context.MODE_PRIVATE);
-
-        // اللغة
         String modeStr = p.getString(KEYLANGUAGEMODE, String.valueOf(LANGUAGE_SYSTEM));
         int mode;
         try { mode = Integer.parseInt(modeStr); } catch (Exception e) { mode = LANGUAGE_SYSTEM; }
@@ -169,59 +182,11 @@ public class SettingsHelper {
         Configuration config = new Configuration(context.getResources().getConfiguration());
         config.setLocale(locale);
 
-        Context newCtx;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            newCtx = context.createConfigurationContext(config);
+            return context.createConfigurationContext(config);
         } else {
             context.getResources().updateConfiguration(config, context.getResources().getDisplayMetrics());
-            newCtx = context;
-        }
-
-        // الخط
-        Typeface tf = getTypeface(newCtx);
-        if (tf == null) return newCtx;
-
-        return new TypefaceContextWrapper(newCtx, tf);
-    }
-
-    // ---------------- Typeface wrapper ----------------
-    private static class TypefaceContextWrapper extends ContextWrapper {
-        private final Typeface typeface;
-
-        TypefaceContextWrapper(Context base, Typeface tf) {
-            super(base);
-            this.typeface = tf;
-        }
-
-        @Override
-        public Object getSystemService(String name) {
-            if (LAYOUT_INFLATER_SERVICE.equals(name)) {
-                LayoutInflater inflater = (LayoutInflater) super.getSystemService(name);
-                LayoutInflater clone = inflater.cloneInContext(this);
-                clone.setFactory2(new LayoutInflater.Factory2() {
-                    @Override
-                    public View onCreateView(String name, Context context, AttributeSet attrs) {
-                        View v = null;
-                        try { v = inflater.createView(name, null, attrs); } catch (Throwable ignored) {}
-                        return applyTypeface(v, typeface);
-                    }
-
-                    @Override
-                    public View onCreateView(View parent, String name, Context context, AttributeSet attrs) {
-                        return onCreateView(name, context, attrs);
-                    }
-                });
-                return clone;
-            }
-            return super.getSystemService(name);
-        }
-
-        private static View applyTypeface(View v, Typeface tf) {
-            if (v == null || tf == null) return v;
-            if (v instanceof TextView) {
-                ((TextView) v).setTypeface(tf);
-            }
-            return v;
+            return context;
         }
     }
 
@@ -229,4 +194,4 @@ public class SettingsHelper {
         SettingsHelper helper = new SettingsHelper(context);
         helper.applyTheme();
     }
-        }
+    }

@@ -2,8 +2,6 @@ package com.example.oneuiapp;
 
 import android.content.ContentValues;
 import android.content.Context;
-import android.content.pm.PackageInfo;
-import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
@@ -51,20 +49,14 @@ public class CrashHandler implements Thread.UncaughtExceptionHandler {
             report.append("Timestamp: ").append(ts).append("\n");
             report.append("Thread: ").append(t.getName()).append("\n");
             report.append("Package: ").append(ctx.getPackageName()).append("\n");
-
-            try {
-                PackageInfo pi = ctx.getPackageManager().getPackageInfo(ctx.getPackageName(), 0);
-                report.append("App Version: ").append(pi.versionName).append(" (").append(pi.versionCode).append(")\n");
-            } catch (PackageManager.NameNotFoundException ignored) {}
-
-            report.append("Device: ").append(Build.MANUFACTURER).append(" ").append(Build.MODEL).append("\n");
-            report.append("SDK: ").append(Build.VERSION.SDK_INT).append("\n\n");
+            report.append("Device: ").append(android.os.Build.MANUFACTURER).append(" ").append(android.os.Build.MODEL).append("\n");
+            report.append("SDK: ").append(android.os.Build.VERSION.SDK_INT).append("\n\n");
             report.append(stack);
 
             String fileName = "crash_" + ts + ".txt";
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                // Android 10+ : MediaStore
+                // Use MediaStore to write to public Downloads (no runtime permission required)
                 ContentValues values = new ContentValues();
                 values.put(MediaStore.MediaColumns.DISPLAY_NAME, fileName);
                 values.put(MediaStore.MediaColumns.MIME_TYPE, "text/plain");
@@ -72,13 +64,13 @@ public class CrashHandler implements Thread.UncaughtExceptionHandler {
                 Uri uri = ctx.getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
                 if (uri != null) {
                     try (OutputStream os = ctx.getContentResolver().openOutputStream(uri);
-                         OutputStreamWriter ow = new OutputStreamWriter(os, "UTF-8");
+                         OutputStreamWriter ow = new OutputStreamWriter(os);
                          BufferedWriter bw = new BufferedWriter(ow)) {
                         bw.write(report.toString());
                     }
                 }
             } else {
-                // Android 9 وأقل
+                // Legacy path for Android 9 and below — requires WRITE_EXTERNAL_STORAGE permission (runtime on M+)
                 File dir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "OneUIApp");
                 if (!dir.exists()) dir.mkdirs();
                 File out = new File(dir, fileName);
@@ -99,4 +91,4 @@ public class CrashHandler implements Thread.UncaughtExceptionHandler {
             System.exit(2);
         }
     }
-}
+              }
