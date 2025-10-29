@@ -21,8 +21,7 @@ import dev.oneuiproject.oneui.layout.DrawerLayout;
 import androidx.appcompat.app.AlertDialog;
 
 /**
- * MainActivity - النسخة المحدثة مع زر عرض معلومات الخط (font metadata)
- * تحكم بالرؤية بحيث تظهر أيقونة المعلومات فقط عند عرض FontViewerFragment (index 2)
+ * MainActivity - النسخة المحدثة مع حماية attachBaseContext وحماية الوصول للتولبار
  */
 public class MainActivity extends BaseActivity implements FontViewerFragment.OnFontChangedListener {
 
@@ -44,7 +43,18 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
 
     @Override
     protected void attachBaseContext(Context newBase) {
-        super.attachBaseContext(SettingsHelper.wrapContext(newBase));
+        // حماية: إذا فشل التغليف (مثلاً بسبب TypefaceContextWrapper أو موارد غير متوقعة)
+        // نرجع لاستخدام السياق الأصلي لمنع كراش عند الإقلاع
+        try {
+            Context wrapped = SettingsHelper.wrapContext(newBase);
+            if (wrapped != null) {
+                super.attachBaseContext(wrapped);
+                return;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        super.attachBaseContext(newBase);
     }
 
     @Override
@@ -79,25 +89,33 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
 
         // Inflate font meta menu into DrawerLayout toolbar (if toolbar exists)
         try {
-            if (mDrawerLayout != null && mDrawerLayout.getToolbar() != null) {
-                mDrawerLayout.getToolbar().inflateMenu(R.menu.menu_main_font_meta);
-                // حفظ مرجع عنصر القائمة من الـ Menu في الـ Toolbar
-                Menu menu = mDrawerLayout.getToolbar().getMenu();
-                if (menu != null) {
-                    mFontMetaMenuItem = menu.findItem(R.id.action_font_meta);
-                    if (mFontMetaMenuItem != null) {
-                        // اجعله مخفياً افتراضياً؛ سنظهره عندما نعرض FontViewerFragment
-                        mFontMetaMenuItem.setVisible(false);
-                    }
-                }
+            if (mDrawerLayout != null) {
+                // حماية إضافية: قد يرجع getToolbar() null أو يرمز لاستثناء داخلي في بعض إصدارات المكتبة
+                try {
+                    if (mDrawerLayout.getToolbar() != null) {
+                        mDrawerLayout.getToolbar().inflateMenu(R.menu.menu_main_font_meta);
+                        // حفظ مرجع عنصر القائمة من الـ Menu في الـ Toolbar
+                        Menu menu = mDrawerLayout.getToolbar().getMenu();
+                        if (menu != null) {
+                            mFontMetaMenuItem = menu.findItem(R.id.action_font_meta);
+                            if (mFontMetaMenuItem != null) {
+                                // اجعله مخفياً افتراضياً؛ سنظهره عندما نعرض FontViewerFragment
+                                mFontMetaMenuItem.setVisible(false);
+                            }
+                        }
 
-                mDrawerLayout.getToolbar().setOnMenuItemClickListener(item -> {
-                    if (item.getItemId() == R.id.action_font_meta) {
-                        showFontMetaFromFragment();
-                        return true;
+                        mDrawerLayout.getToolbar().setOnMenuItemClickListener(item -> {
+                            if (item.getItemId() == R.id.action_font_meta) {
+                                showFontMetaFromFragment();
+                                return true;
+                            }
+                            return false;
+                        });
                     }
-                    return false;
-                });
+                } catch (Exception inner) {
+                    // لا نيأس التطبيق بسبب مشاكل في تولبار المكتبة؛ نطبع الخطأ ونستمر
+                    inner.printStackTrace();
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -105,8 +123,15 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
     }
 
     private void initViews() {
-        mDrawerLayout = findViewById(R.id.drawer_layout);
-        mDrawerListView = findViewById(R.id.drawer_list_view);
+        try {
+            mDrawerLayout = findViewById(R.id.drawer_layout);
+            mDrawerListView = findViewById(R.id.drawer_list_view);
+        } catch (Exception e) {
+            // الحماية: إذا فشل العثور على أي View، نمنع الكراش ونترك القيم null
+            e.printStackTrace();
+            mDrawerLayout = null;
+            mDrawerListView = null;
+        }
     }
 
     private void initFragmentsList() {
@@ -131,12 +156,18 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
     }
 
     private void setupDrawer() {
+        if (mDrawerListView == null) return;
+
         mDrawerListView.setLayoutManager(new LinearLayoutManager(this));
         mDrawerAdapter = new DrawerListAdapter(
                 this,
                 mFragments,
                 position -> {
-                    mDrawerLayout.setDrawerOpen(false, true);
+                    try {
+                        if (mDrawerLayout != null) mDrawerLayout.setDrawerOpen(false, true);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
 
                     if (position != mCurrentFragmentIndex) {
                         mCurrentFragmentIndex = position;
@@ -220,8 +251,12 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
             subtitle = getString(R.string.app_subtitle);
         }
 
-        mDrawerLayout.setTitle(title);
-        mDrawerLayout.setExpandedSubtitle(subtitle);
+        try {
+            mDrawerLayout.setTitle(title);
+            mDrawerLayout.setExpandedSubtitle(subtitle);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
         // تأكد من أن أيقونة المعلومات مرئية فقط عند شاشة Font Viewer (index 2)
         try {
@@ -319,4 +354,4 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
             updateDrawerTitle(position);
         }
     }
-                        }
+                }
