@@ -9,7 +9,7 @@ import android.view.View;
 import android.widget.TextView;
 
 /**
- * ContextWrapper يطبق Typeface مخصص على كل TextView يتم إنشاؤه.
+ * يطبق الخط فقط على TextView.
  */
 public class TypefaceContextWrapper extends ContextWrapper {
 
@@ -29,16 +29,20 @@ public class TypefaceContextWrapper extends ContextWrapper {
         return super.getSystemService(name);
     }
 
-    public View onCreateView(View parent, String name, Context context, AttributeSet attrs) {
-        View view = null;
-        try {
-            LayoutInflater inflater = LayoutInflater.from(getBaseContext());
-            view = inflater.createView(name, null, attrs);
-        } catch (Exception ignored) {}
+    /**
+     * استدعِ هذه الدالة من BaseActivity بعد setContentView
+     * لتطبيق الخط على كل الـ Views.
+     */
+    public void applyFont(View root) {
+        if (root == null || typeface == null) return;
 
-        if (view instanceof TextView && typeface != null) {
-            ((TextView) view).setTypeface(typeface);
+        if (root instanceof TextView) {
+            ((TextView) root).setTypeface(typeface);
+        } else if (root instanceof android.view.ViewGroup) {
+            android.view.ViewGroup vg = (android.view.ViewGroup) root;
+            for (int i = 0; i < vg.getChildCount(); i++) {
+                applyFont(vg.getChildAt(i));
+            }
         }
-        return view;
     }
 }
