@@ -22,6 +22,7 @@ import androidx.appcompat.app.AlertDialog;
 
 /**
  * MainActivity - النسخة المحدثة مع حماية attachBaseContext وحماية الوصول للتولبار
+ * لا تستخدم موارد نظام داخلية ولا تستدعي setBackgroundResource ولن تغير الثيم برمجياً.
  */
 public class MainActivity extends BaseActivity implements FontViewerFragment.OnFontChangedListener {
 
@@ -113,7 +114,7 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
                         });
                     }
                 } catch (Exception inner) {
-                    // لا نيأس التطبيق بسبب مشاكل في تولبار المكتبة؛ نطبع الخطأ ونستمر
+                    // لا نريد أن يتسبب أي استثناء في تعطيل الإقلاع
                     inner.printStackTrace();
                 }
             }
@@ -354,4 +355,4 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
             updateDrawerTitle(position);
         }
     }
-                }
+                 }
