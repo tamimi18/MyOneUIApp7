@@ -117,4 +117,4 @@ public class DrawerListAdapter extends RecyclerView.Adapter<DrawerListViewHolder
     public int getSelectedPosition() {
         return mSelectedPos;
     }
-}
+    }
