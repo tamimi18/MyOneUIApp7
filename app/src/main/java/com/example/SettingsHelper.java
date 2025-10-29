@@ -194,4 +194,4 @@ public class SettingsHelper {
         SettingsHelper helper = new SettingsHelper(context);
         helper.applyTheme();
     }
-    }
+        }
