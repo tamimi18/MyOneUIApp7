@@ -1,6 +1,5 @@
 package com.example.oneuiapp;
 
-import android.content.Context;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.Menu;
@@ -19,10 +18,10 @@ import java.util.Map;
 
 import dev.oneuiproject.oneui.layout.DrawerLayout;
 import androidx.appcompat.app.AlertDialog;
+import android.content.Context;
 
 /**
- * MainActivity - النسخة المحدثة مع حماية attachBaseContext وحماية الوصول للتولبار
- * لا تستخدم موارد نظام داخلية ولا تستدعي setBackgroundResource ولن تغير الثيم برمجياً.
+ * MainActivity متوافق مع OneUI: لا نغيّر الثيم برمجياً، لا نستخدم موارد داخلية، نطبق الخط بعد الواجهة.
  */
 public class MainActivity extends BaseActivity implements FontViewerFragment.OnFontChangedListener {
 
@@ -39,24 +38,7 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
     private String currentFontRealName;
     private String currentFontFileName;
 
-    // مرجع عنصر القائمة الخاص بمعلومات الخط لتمكين/تعطيل رؤيته
     private MenuItem mFontMetaMenuItem;
-
-    @Override
-    protected void attachBaseContext(Context newBase) {
-        // حماية: إذا فشل التغليف (مثلاً بسبب TypefaceContextWrapper أو موارد غير متوقعة)
-        // نرجع لاستخدام السياق الأصلي لمنع كراش عند الإقلاع
-        try {
-            Context wrapped = SettingsHelper.wrapContext(newBase);
-            if (wrapped != null) {
-                super.attachBaseContext(wrapped);
-                return;
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        super.attachBaseContext(newBase);
-    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -88,35 +70,27 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
         setupDrawer();
         updateDrawerTitle(mCurrentFragmentIndex);
 
-        // Inflate font meta menu into DrawerLayout toolbar (if toolbar exists)
+        // إعداد التولبار والقائمة بأمان، دون تغيير الخلفية يدوياً
         try {
-            if (mDrawerLayout != null) {
-                // حماية إضافية: قد يرجع getToolbar() null أو يرمز لاستثناء داخلي في بعض إصدارات المكتبة
+            if (mDrawerLayout != null && mDrawerLayout.getToolbar() != null) {
+                setSupportActionBar(mDrawerLayout.getToolbar());
                 try {
-                    if (mDrawerLayout.getToolbar() != null) {
-                        mDrawerLayout.getToolbar().inflateMenu(R.menu.menu_main_font_meta);
-                        // حفظ مرجع عنصر القائمة من الـ Menu في الـ Toolbar
-                        Menu menu = mDrawerLayout.getToolbar().getMenu();
-                        if (menu != null) {
-                            mFontMetaMenuItem = menu.findItem(R.id.action_font_meta);
-                            if (mFontMetaMenuItem != null) {
-                                // اجعله مخفياً افتراضياً؛ سنظهره عندما نعرض FontViewerFragment
-                                mFontMetaMenuItem.setVisible(false);
-                            }
+                    mDrawerLayout.getToolbar().inflateMenu(R.menu.menu_main_font_meta);
+                    Menu menu = mDrawerLayout.getToolbar().getMenu();
+                    if (menu != null) {
+                        mFontMetaMenuItem = menu.findItem(R.id.action_font_meta);
+                        if (mFontMetaMenuItem != null) {
+                            mFontMetaMenuItem.setVisible(false);
                         }
-
-                        mDrawerLayout.getToolbar().setOnMenuItemClickListener(item -> {
-                            if (item.getItemId() == R.id.action_font_meta) {
-                                showFontMetaFromFragment();
-                                return true;
-                            }
-                            return false;
-                        });
                     }
-                } catch (Exception inner) {
-                    // لا نريد أن يتسبب أي استثناء في تعطيل الإقلاع
-                    inner.printStackTrace();
-                }
+                } catch (Exception ignored) {}
+                mDrawerLayout.getToolbar().setOnMenuItemClickListener(item -> {
+                    if (item.getItemId() == R.id.action_font_meta) {
+                        showFontMetaFromFragment();
+                        return true;
+                    }
+                    return false;
+                });
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -124,15 +98,8 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
     }
 
     private void initViews() {
-        try {
-            mDrawerLayout = findViewById(R.id.drawer_layout);
-            mDrawerListView = findViewById(R.id.drawer_list_view);
-        } catch (Exception e) {
-            // الحماية: إذا فشل العثور على أي View، نمنع الكراش ونترك القيم null
-            e.printStackTrace();
-            mDrawerLayout = null;
-            mDrawerListView = null;
-        }
+        mDrawerLayout = findViewById(R.id.drawer_layout);
+        mDrawerListView = findViewById(R.id.drawer_list_view);
     }
 
     private void initFragmentsList() {
@@ -205,7 +172,6 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
 
         transaction.commitNow();
 
-        // تحديث رؤية أيقونة معلومات الخط بعد تبديل الفِراغمنت
         try {
             if (mFontMetaMenuItem != null) {
                 mFontMetaMenuItem.setVisible(position == 2);
@@ -259,7 +225,6 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
             e.printStackTrace();
         }
 
-        // تأكد من أن أيقونة المعلومات مرئية فقط عند شاشة Font Viewer (index 2)
         try {
             if (mFontMetaMenuItem != null) {
                 mFontMetaMenuItem.setVisible(fragmentIndex == 2);
@@ -268,9 +233,6 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
         }
     }
 
-    /**
-     * Gathers metadata from FontViewerFragment and shows dialog.
-     */
     private void showFontMetaFromFragment() {
         Fragment frag = (mFragments.size() > 2) ? mFragments.get(2) : null;
         if (!(frag instanceof FontViewerFragment)) {
@@ -355,4 +317,4 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
             updateDrawerTitle(position);
         }
     }
-                 }
+        }
