@@ -29,7 +29,7 @@ import java.io.RandomAccessFile;
 
 /**
  * FontViewerFragment - عارض الخطوط مع تحديث تلقائي لنص المعاينة
- * تم تصحيح سطر mimeTypes الذي تسبّب في خطأ التجميع (تمت إزالة انقسام السلسلة).
+ * ويحتوي الآن على دالة استخراج metadata العامة getFontMetaData()
  */
 public class FontViewerFragment extends Fragment implements SharedPreferences.OnSharedPreferenceChangeListener {
 
@@ -50,7 +50,6 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
     private String currentFontRealName;
     private Typeface currentTypeface;
 
-    // حفظ آخر نص معاينة لمعرفة إذا تغير
     private String lastPreviewText = "";
     private SharedPreferences sharedPreferences;
 
@@ -125,7 +124,6 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
             loadLastUsedFont();
         }
 
-        // تحديث نص المعاينة لأول مرة
         updatePreviewTexts();
     }
 
@@ -133,16 +131,12 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
     public void onResume() {
         super.onResume();
 
-        // تسجيل المستمع عند إظهار الشاشة
         sharedPreferences = PreferenceManager.getDefaultSharedPreferences(requireContext());
         sharedPreferences.registerOnSharedPreferenceChangeListener(this);
 
-        // الحصول على نص المعاينة الحالي من الإعدادات
         String currentPreviewText = SettingsHelper.getPreviewText(requireContext());
 
-        // التحقق: هل تغير النص منذ آخر مرة؟
         if (!currentPreviewText.equals(lastPreviewText)) {
-            // نعم تغير! نحدّث المعاينة
             lastPreviewText = currentPreviewText;
             updatePreviewTexts();
         }
@@ -165,25 +159,17 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
         }
     }
 
-    /**
-     * تحديث نصوص المعاينة بالنص المحفوظ في الإعدادات
-     * مع تطبيق الخط المخصص إذا كان موجوداً
-     */
     private void updatePreviewTexts() {
         if (previewSentence == null) {
             return;
         }
 
-        // الحصول على نص المعاينة المخصص من الإعدادات
         String previewText = SettingsHelper.getPreviewText(requireContext());
 
-        // تطبيق النص على المعاينة
         previewSentence.setText(previewText);
 
-        // الأرقام تبقى كما هي (افتراضية)
         previewNumbers.setText(getString(R.string.font_viewer_english_numbers));
 
-        // تطبيق الخط المخصص إذا كان موجوداً
         if (currentTypeface != null) {
             applyFontToPreviewTexts();
         }
@@ -470,4 +456,95 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
     public boolean hasFontSelected() {
         return currentFontPath != null && !currentFontPath.isEmpty();
     }
+
+    /**
+     * Return common font metadata extracted from the loaded font file.
+     * Keys potentially returned: FullName, Family, SubFamily, PostScriptName, Version, Manufacturer, FileName, Path
+     */
+    public java.util.Map<String, String> getFontMetaData() {
+        java.util.Map<String, String> out = new java.util.HashMap<>();
+        if (currentFontPath == null) return out;
+
+        out.put("Path", currentFontPath);
+        out.put("FileName", currentFontFileName != null ? currentFontFileName : "");
+
+        try (java.io.RandomAccessFile raf = new java.io.RandomAccessFile(new java.io.File(currentFontPath), "r")) {
+            raf.seek(0);
+            int sfntVersion = raf.readInt();
+            if (sfntVersion != 0x00010000 && sfntVersion != 0x4F54544F) return out;
+
+            int numTables = raf.readUnsignedShort();
+            raf.skipBytes(6);
+
+            long nameTableOffset = -1;
+
+            for (int i = 0; i < numTables; i++) {
+                byte[] tag = new byte[4];
+                raf.readFully(tag);
+                String tagName = new String(tag, "US-ASCII");
+                raf.skipBytes(4); // checksum
+                long offset = readUInt32(raf);
+                long length = readUInt32(raf);
+                if ("name".equals(tagName)) {
+                    nameTableOffset = offset;
                 }
+            }
+
+            if (nameTableOffset != -1) {
+                raf.seek(nameTableOffset);
+                raf.readUnsignedShort(); // format
+                int count = raf.readUnsignedShort();
+                int stringOffset = raf.readUnsignedShort();
+                long strBase = nameTableOffset + stringOffset;
+
+                String fullName = null, family = null, subfamily = null, postScriptName = null, version = null, manuf = null;
+                for (int i = 0; i < count; i++) {
+                    int platformID = raf.readUnsignedShort();
+                    int encodingID = raf.readUnsignedShort();
+                    int languageID = raf.readUnsignedShort();
+                    int nameID = raf.readUnsignedShort();
+                    int length = raf.readUnsignedShort();
+                    int offset = raf.readUnsignedShort();
+
+                    long cur = raf.getFilePointer();
+                    raf.seek(strBase + offset);
+                    byte[] data = new byte[length];
+                    raf.readFully(data);
+
+                    String name;
+                    if (platformID == 3) { // Windows: UTF-16BE
+                        name = new String(data, "UTF-16BE");
+                    } else {
+                        name = new String(data, "US-ASCII");
+                    }
+
+                    switch (nameID) {
+                        case 0: if (manuf == null) manuf = name; break;
+                        case 1: if (family == null) family = name; break;
+                        case 2: if (subfamily == null) subfamily = name; break;
+                        case 4: if (fullName == null) fullName = name; break;
+                        case 5: if (version == null) version = name; break;
+                        case 6: if (postScriptName == null) postScriptName = name; break;
+                    }
+
+                    raf.seek(cur);
+                }
+
+                if (fullName != null) out.put("FullName", fullName);
+                if (family != null) out.put("Family", family);
+                if (subfamily != null) out.put("SubFamily", subfamily);
+                if (postScriptName != null) out.put("PostScriptName", postScriptName);
+                if (version != null) out.put("Version", version);
+                if (manuf != null) out.put("Manufacturer", manuf);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        if (!out.containsKey("FullName") && currentFontRealName != null) {
+            out.put("FullName", currentFontRealName);
+        }
+        return out;
+    }
+            }
