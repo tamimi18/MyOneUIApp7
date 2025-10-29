@@ -9,7 +9,7 @@ import android.view.View;
 import androidx.appcompat.app.AppCompatActivity;
 
 /**
- * BaseActivity ensures the Activity context is wrapped with app settings (locale/theme)
+ * BaseActivity ensures the Activity context is wrapped with app settings (locale/theme/font)
  * and listens for font-change broadcasts to recreate itself.
  */
 public class BaseActivity extends AppCompatActivity {
@@ -37,7 +37,7 @@ public class BaseActivity extends AppCompatActivity {
             return;
         }
         android.content.res.Configuration config = new android.content.res.Configuration(overrideConfiguration);
-        java.util.Locale locale = SettingsHelper.getLocale(this);
+        java.util.Locale locale = SettingsHelper.getLocale(getApplicationContext());
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             config.setLocale(locale);
             config.setLocales(new LocaleList(locale));
@@ -53,7 +53,7 @@ public class BaseActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        java.util.Locale locale = SettingsHelper.getLocale(this);
+        java.util.Locale locale = SettingsHelper.getLocale(getApplicationContext());
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
             int dir = TextUtils.getLayoutDirectionFromLocale(locale);
             getWindow().getDecorView().setLayoutDirection(dir == View.LAYOUT_DIRECTION_RTL ? View.LAYOUT_DIRECTION_RTL : View.LAYOUT_DIRECTION_LTR);
