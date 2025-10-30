@@ -19,7 +19,6 @@ import dev.oneuiproject.oneui.widget.Toast;
 public class SettingsFragment extends PreferenceFragmentCompat implements Preference.OnPreferenceChangeListener {
 
     private Context mContext;
-
     private ListPreference languagePreference;
     private ListPreference themePreference;
     private ListPreference fontPreference;
@@ -38,26 +37,17 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Prefer
         syncSettingsHelper();
     }
 
-    /**
-     * مزامنة التفضيلات القديمة إن وجدت إلى DefaultSharedPreferences
-     */
     private void syncSettingsHelper() {
         try {
             SharedPreferences defaultPrefs = PreferenceManager.getDefaultSharedPreferences(mContext);
             SharedPreferences oldPrefs = mContext.getSharedPreferences("AppSettings", Context.MODE_PRIVATE);
-
             if (oldPrefs.getAll().size() > 0 && defaultPrefs.getAll().size() == 0) {
                 SharedPreferences.Editor editor = defaultPrefs.edit();
                 for (String key : oldPrefs.getAll().keySet()) {
                     Object value = oldPrefs.getAll().get(key);
-                    if (value instanceof String) {
-                        editor.putString(key, (String) value);
-                    } else if (value instanceof Integer) {
-                        // ListPreference تعتمد على entryValues كنصوص
-                        editor.putString(key, String.valueOf(value));
-                    } else if (value instanceof Boolean) {
-                        editor.putBoolean(key, (Boolean) value);
-                    }
+                    if (value instanceof String) editor.putString(key, (String) value);
+                    else if (value instanceof Integer) editor.putString(key, String.valueOf(value));
+                    else if (value instanceof Boolean) editor.putBoolean(key, (Boolean) value);
                 }
                 editor.apply();
             }
@@ -107,58 +97,46 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Prefer
     @Override
     public boolean onPreferenceChange(Preference preference, Object newValue) {
         String key = preference.getKey();
-
         if ("language_mode".equals(key)) {
             int mode = Integer.parseInt((String) newValue);
-            new SettingsHelper(mContext).setLanguageMode(mode);
-            requireActivity().recreate();
-            return true;
+            SettingsHelper sh = new SettingsHelper(mContext);
+            sh.setLanguageMode(mode);
 
+            // Immediately apply locale for current Activity and recreate so direction updates
+            Context wrapped = SettingsHelper.wrapContext(mContext);
+            // update underlying activity resources then recreate
+            if (getActivity() != null) {
+                getActivity().recreate();
+            }
+            return true;
         } else if ("theme_mode".equals(key)) {
             int mode = Integer.parseInt((String) newValue);
             SettingsHelper helper = new SettingsHelper(mContext);
             helper.setThemeMode(mode);
             helper.applyTheme();
+            if (getActivity() != null) getActivity().recreate();
             return true;
-
         } else if ("font_mode".equals(key)) {
             int mode = Integer.parseInt((String) newValue);
             SettingsHelper sh = new SettingsHelper(mContext);
             sh.setFontMode(mode);
-
-            // لم نعد بحاجة إلى FontHelper.applyFont()، يكفي إعادة إنشاء الأنشطة
+            // recreate all activities to ensure font applied everywhere
             MyApplication app = MyApplication.getInstance();
-            if (app != null) {
-                app.recreateAllActivities();
-            } else {
-                requireActivity().recreate();
-            }
+            if (app != null) app.recreateAllActivities();
+            else if (getActivity() != null) getActivity().recreate();
             return true;
-
         } else if ("notifications_enabled".equals(key)) {
             boolean enabled = (Boolean) newValue;
             new SettingsHelper(mContext).setNotificationsEnabled(enabled);
-
-            String msg = enabled
-                    ? mContext.getString(R.string.notifications_enabled)
-                    : mContext.getString(R.string.notifications_disabled);
-
+            String msg = enabled ? mContext.getString(R.string.notifications_enabled) : mContext.getString(R.string.notifications_disabled);
             Toast.makeText(mContext, msg, Toast.LENGTH_SHORT).show();
             return true;
-
         } else if ("preview_text".equals(key)) {
             String text = (String) newValue;
             new SettingsHelper(mContext).setPreviewText(text);
-
-            Toast.makeText(
-                    mContext,
-                    mContext.getString(R.string.settings_preview_text) + " " +
-                            mContext.getString(android.R.string.ok),
-                    Toast.LENGTH_SHORT
-            ).show();
+            Toast.makeText(mContext, mContext.getString(R.string.settings_preview_text) + " " + mContext.getString(android.R.string.ok), Toast.LENGTH_SHORT).show();
             return true;
         }
-
         return true;
     }
 }
