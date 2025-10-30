@@ -11,8 +11,9 @@ import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.view.GravityCompat;
-import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.recyclerview.widget.RecyclerView;
+
+import dev.oneuiproject.oneui.layout.DrawerLayout;
 
 public abstract class BaseActivity extends AppCompatActivity {
 
@@ -41,30 +42,27 @@ public abstract class BaseActivity extends AppCompatActivity {
     }
 
     /**
-     * Call this from subclasses after setContentView(...) to wire toolbar/drawer.
-     * Relies on ids in layouts: toolbar (R.id.toolbar), drawer_layout (R.id.drawer_layout),
-     * drawer_list_view (R.id.drawer_list_view)
+     * Call this from subclasses after setContentView(...) to wire toolbar and drawer.
+     * Expects ids: R.id.toolbar, R.id.drawer_layout, R.id.drawer_list_view
      */
     protected void setupToolbarAndDrawer() {
-        toolbar = findViewById(getId("toolbar"));
-        drawerLayout = findViewById(getId("drawer_layout"));
-        drawerRecyclerView = findViewById(getId("drawer_list_view"));
+        toolbar = findViewById(R.id.toolbar);
+        drawerLayout = findViewById(R.id.drawer_layout);
+        drawerRecyclerView = findViewById(R.id.drawer_list_view);
 
         if (toolbar != null) setSupportActionBar(toolbar);
 
         if (drawerLayout != null && toolbar != null) {
-            // Use existing string resources navigation_drawer_open / navigation_drawer_close if available,
-            // otherwise fall back to empty strings to avoid compile/runtime issues.
+            // Use resource ids for accessibility descriptions if present
             int openId = getResources().getIdentifier("navigation_drawer_open", "string", getPackageName());
             int closeId = getResources().getIdentifier("navigation_drawer_close", "string", getPackageName());
-            String openDesc = openId != 0 ? getString(openId) : "";
-            String closeDesc = closeId != 0 ? getString(closeId) : "";
-
             drawerToggle = new ActionBarDrawerToggle(this, drawerLayout, toolbar,
-                    openDesc, closeDesc);
+                    openId != 0 ? openId : 0,
+                    closeId != 0 ? closeId : 0);
             drawerLayout.addDrawerListener(drawerToggle);
             drawerToggle.syncState();
 
+            // Ensure navigation icon toggles drawer (compatible with OneUI DrawerLayout)
             toolbar.setNavigationOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
@@ -78,7 +76,7 @@ public abstract class BaseActivity extends AppCompatActivity {
         }
 
         applyTypefaceToToolbar();
-        applyTypefaceToDrawerItems();
+        notifyDrawerAdapterToRebindTypeface();
     }
 
     protected void applyTypefaceToToolbar() {
@@ -90,25 +88,11 @@ public abstract class BaseActivity extends AppCompatActivity {
         }
     }
 
-    protected void applyTypefaceToDrawerItems() {
-        Typeface tf = SettingsHelper.getTypeface(this);
-        if (drawerRecyclerView == null || tf == null) return;
-
-        // If adapter supports applying typeface per holder (as in DrawerListAdapter), notify adapter to bind again
+    protected void notifyDrawerAdapterToRebindTypeface() {
+        if (drawerRecyclerView == null) return;
         try {
             RecyclerView.Adapter adapter = drawerRecyclerView.getAdapter();
             if (adapter != null) adapter.notifyDataSetChanged();
         } catch (Exception ignored) {}
     }
-
-    // Utility to avoid compile errors if some ids differ; expects R.id.<name> generally exists.
-    protected <T extends View> T findViewByStringId(String name) {
-        int id = getId(name);
-        if (id == 0) return null;
-        return findViewById(id);
-    }
-
-    protected int getId(String name) {
-        return getResources().getIdentifier(name, "id", getPackageName());
-    }
-                }
+}
