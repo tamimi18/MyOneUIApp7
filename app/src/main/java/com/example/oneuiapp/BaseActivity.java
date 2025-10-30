@@ -13,7 +13,7 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.core.view.GravityCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
-import dev.oneuiproject.oneui.layout.DrawerLayout;
+import androidx.drawerlayout.widget.DrawerLayout;
 
 public abstract class BaseActivity extends AppCompatActivity {
 
