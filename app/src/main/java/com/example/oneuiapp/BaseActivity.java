@@ -31,7 +31,6 @@ public abstract class BaseActivity extends AppCompatActivity {
     @Override
     protected void onPostCreate(@Nullable Bundle savedInstanceState) {
         super.onPostCreate(savedInstanceState);
-        // Apply font to already-inflated views (decor view)
         try {
             Typeface tf = SettingsHelper.getTypeface(this);
             if (tf != null) {
@@ -54,12 +53,12 @@ public abstract class BaseActivity extends AppCompatActivity {
         if (toolbar != null) setSupportActionBar(toolbar);
 
         if (drawerLayout != null && toolbar != null) {
+            // Use existing string resources navigation_drawer_open / navigation_drawer_close
             drawerToggle = new ActionBarDrawerToggle(this, drawerLayout, toolbar,
-                    R.string.open_drawer, R.string.close_drawer);
+                    R.string.navigation_drawer_open, R.string.navigation_drawer_close);
             drawerLayout.addDrawerListener(drawerToggle);
             drawerToggle.syncState();
 
-            // ensure navigation icon always opens drawer (works for custom icons too)
             toolbar.setNavigationOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
@@ -86,8 +85,6 @@ public abstract class BaseActivity extends AppCompatActivity {
     }
 
     protected void applyTypefaceToNavigationItems() {
-        // If using NavigationView menu (not adapter), you can set itemTextAppearance to a style that references a font-family.
-        // If using RecyclerView adapter (DrawerListAdapter) it already applies Typeface per item.
         if (navigationView != null) {
             try {
                 int styleId = getResources().getIdentifier("NavDrawerItemText", "style", getPackageName());
