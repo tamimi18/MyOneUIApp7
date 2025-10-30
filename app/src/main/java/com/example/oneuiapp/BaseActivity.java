@@ -12,15 +12,14 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
-
-import com.google.android.material.navigation.NavigationView;
+import androidx.recyclerview.widget.RecyclerView;
 
 public abstract class BaseActivity extends AppCompatActivity {
 
     protected DrawerLayout drawerLayout;
     protected ActionBarDrawerToggle drawerToggle;
-    protected NavigationView navigationView;
     protected Toolbar toolbar;
+    protected RecyclerView drawerRecyclerView;
 
     @Override
     protected void attachBaseContext(Context newBase) {
@@ -43,19 +42,26 @@ public abstract class BaseActivity extends AppCompatActivity {
 
     /**
      * Call this from subclasses after setContentView(...) to wire toolbar/drawer.
-     * Relies on ids in layouts: toolbar, drawer_layout, nav_view
+     * Relies on ids in layouts: toolbar (R.id.toolbar), drawer_layout (R.id.drawer_layout),
+     * drawer_list_view (R.id.drawer_list_view)
      */
     protected void setupToolbarAndDrawer() {
-        toolbar = findViewById(R.id.toolbar);
-        drawerLayout = findViewById(R.id.drawer_layout);
-        navigationView = findViewById(R.id.nav_view);
+        toolbar = findViewById(getId("toolbar"));
+        drawerLayout = findViewById(getId("drawer_layout"));
+        drawerRecyclerView = findViewById(getId("drawer_list_view"));
 
         if (toolbar != null) setSupportActionBar(toolbar);
 
         if (drawerLayout != null && toolbar != null) {
-            // Use existing string resources navigation_drawer_open / navigation_drawer_close
+            // Use existing string resources navigation_drawer_open / navigation_drawer_close if available,
+            // otherwise fall back to empty strings to avoid compile/runtime issues.
+            int openId = getResources().getIdentifier("navigation_drawer_open", "string", getPackageName());
+            int closeId = getResources().getIdentifier("navigation_drawer_close", "string", getPackageName());
+            String openDesc = openId != 0 ? getString(openId) : "";
+            String closeDesc = closeId != 0 ? getString(closeId) : "";
+
             drawerToggle = new ActionBarDrawerToggle(this, drawerLayout, toolbar,
-                    R.string.navigation_drawer_open, R.string.navigation_drawer_close);
+                    openDesc, closeDesc);
             drawerLayout.addDrawerListener(drawerToggle);
             drawerToggle.syncState();
 
@@ -72,7 +78,7 @@ public abstract class BaseActivity extends AppCompatActivity {
         }
 
         applyTypefaceToToolbar();
-        applyTypefaceToNavigationItems();
+        applyTypefaceToDrawerItems();
     }
 
     protected void applyTypefaceToToolbar() {
@@ -84,12 +90,25 @@ public abstract class BaseActivity extends AppCompatActivity {
         }
     }
 
-    protected void applyTypefaceToNavigationItems() {
-        if (navigationView != null) {
-            try {
-                int styleId = getResources().getIdentifier("NavDrawerItemText", "style", getPackageName());
-                if (styleId != 0) navigationView.setItemTextAppearance(styleId);
-            } catch (Exception ignored) {}
-        }
+    protected void applyTypefaceToDrawerItems() {
+        Typeface tf = SettingsHelper.getTypeface(this);
+        if (drawerRecyclerView == null || tf == null) return;
+
+        // If adapter supports applying typeface per holder (as in DrawerListAdapter), notify adapter to bind again
+        try {
+            RecyclerView.Adapter adapter = drawerRecyclerView.getAdapter();
+            if (adapter != null) adapter.notifyDataSetChanged();
+        } catch (Exception ignored) {}
     }
-}
+
+    // Utility to avoid compile errors if some ids differ; expects R.id.<name> generally exists.
+    protected <T extends View> T findViewByStringId(String name) {
+        int id = getId(name);
+        if (id == 0) return null;
+        return findViewById(id);
+    }
+
+    protected int getId(String name) {
+        return getResources().getIdentifier(name, "id", getPackageName());
+    }
+                }
