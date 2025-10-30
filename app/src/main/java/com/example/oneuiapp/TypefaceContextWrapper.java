@@ -2,47 +2,44 @@ package com.example.oneuiapp;
 
 import android.content.Context;
 import android.content.ContextWrapper;
+import android.content.res.Configuration;
+import android.content.res.Resources;
 import android.graphics.Typeface;
-import android.util.AttributeSet;
-import android.view.LayoutInflater;
+import android.os.Build;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.TextView;
 
-/**
- * يطبق الخط فقط على TextView.
- */
+import java.util.Locale;
+
 public class TypefaceContextWrapper extends ContextWrapper {
 
     private final Typeface typeface;
 
-    public TypefaceContextWrapper(Context base, Typeface typeface) {
+    public TypefaceContextWrapper(Context base, Typeface tf) {
         super(base);
-        this.typeface = typeface;
+        this.typeface = tf;
+    }
+
+    public static Context wrap(Context context, Typeface tf) {
+        return new TypefaceContextWrapper(context, tf);
+    }
+
+    // Recursively apply typeface to view tree (used after inflate)
+    public static void applyFontRecursively(View root, Typeface tf) {
+        if (root == null || tf == null) return;
+        if (root instanceof TextView) {
+            ((TextView) root).setTypeface(tf);
+        } else if (root instanceof ViewGroup) {
+            ViewGroup vg = (ViewGroup) root;
+            for (int i = 0; i < vg.getChildCount(); i++) {
+                applyFontRecursively(vg.getChildAt(i), tf);
+            }
+        }
     }
 
     @Override
-    public Object getSystemService(String name) {
-        if (LAYOUT_INFLATER_SERVICE.equals(name)) {
-            LayoutInflater inflater = (LayoutInflater) super.getSystemService(name);
-            return inflater.cloneInContext(this);
-        }
-        return super.getSystemService(name);
-    }
-
-    /**
-     * استدعِ هذه الدالة من BaseActivity بعد setContentView
-     * لتطبيق الخط على كل الـ Views.
-     */
-    public void applyFont(View root) {
-        if (root == null || typeface == null) return;
-
-        if (root instanceof TextView) {
-            ((TextView) root).setTypeface(typeface);
-        } else if (root instanceof android.view.ViewGroup) {
-            android.view.ViewGroup vg = (android.view.ViewGroup) root;
-            for (int i = 0; i < vg.getChildCount(); i++) {
-                applyFont(vg.getChildAt(i));
-            }
-        }
+    public Resources getResources() {
+        return super.getResources();
     }
 }
