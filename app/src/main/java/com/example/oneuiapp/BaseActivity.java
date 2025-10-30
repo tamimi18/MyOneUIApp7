@@ -3,6 +3,7 @@ package com.example.oneuiapp;
 import android.content.Context;
 import android.graphics.Typeface;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 
@@ -13,14 +14,19 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.core.view.GravityCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
-import androidx.drawerlayout.widget.DrawerLayout;
+import java.lang.reflect.Method;
 
 public abstract class BaseActivity extends AppCompatActivity {
 
-    protected DrawerLayout drawerLayout;
+    private static final String TAG = "BaseActivity";
+
+    protected androidx.drawerlayout.widget.DrawerLayout drawerLayout; // primary expected type
     protected ActionBarDrawerToggle drawerToggle;
     protected Toolbar toolbar;
     protected RecyclerView drawerRecyclerView;
+
+    // backup reference if layout is OneUI DrawerLayout (available at runtime only if dependency present)
+    protected Object oneUiDrawerLayout; // dev.oneuiproject.oneui.layout.DrawerLayout (kept as Object to avoid compile issue)
 
     @Override
     protected void attachBaseContext(Context newBase) {
@@ -37,7 +43,7 @@ public abstract class BaseActivity extends AppCompatActivity {
                 TypefaceContextWrapper.applyFontRecursively(getWindow().getDecorView(), tf);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.w(TAG, "apply font failed: " + e.getMessage());
         }
     }
 
@@ -47,13 +53,23 @@ public abstract class BaseActivity extends AppCompatActivity {
      */
     protected void setupToolbarAndDrawer() {
         toolbar = findViewById(R.id.toolbar);
-        drawerLayout = findViewById(R.id.drawer_layout);
+        View dlView = findViewById(R.id.drawer_layout);
         drawerRecyclerView = findViewById(R.id.drawer_list_view);
+
+        // Determine actual drawer type safely
+        if (dlView instanceof androidx.drawerlayout.widget.DrawerLayout) {
+            drawerLayout = (androidx.drawerlayout.widget.DrawerLayout) dlView;
+            oneUiDrawerLayout = null;
+        } else {
+            drawerLayout = null;
+            // keep raw reference if it's OneUI DrawerLayout (avoid compile dependency)
+            oneUiDrawerLayout = dlView;
+        }
 
         if (toolbar != null) setSupportActionBar(toolbar);
 
+        // Prefer AndroidX DrawerLayout for ActionBarDrawerToggle integration
         if (drawerLayout != null && toolbar != null) {
-            // Use resource ids for accessibility descriptions if present
             int openId = getResources().getIdentifier("navigation_drawer_open", "string", getPackageName());
             int closeId = getResources().getIdentifier("navigation_drawer_close", "string", getPackageName());
             drawerToggle = new ActionBarDrawerToggle(this, drawerLayout, toolbar,
@@ -62,7 +78,6 @@ public abstract class BaseActivity extends AppCompatActivity {
             drawerLayout.addDrawerListener(drawerToggle);
             drawerToggle.syncState();
 
-            // Ensure navigation icon toggles drawer (compatible with OneUI DrawerLayout)
             toolbar.setNavigationOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
@@ -73,6 +88,56 @@ public abstract class BaseActivity extends AppCompatActivity {
                     }
                 }
             });
+        } else if (oneUiDrawerLayout != null && toolbar != null) {
+            // Best-effort integration with OneUI DrawerLayout via reflection (non-blocking)
+            try {
+                // Try to find setDrawerOpen(boolean, boolean) or toggle method and getToolbar()
+                Method setDrawerOpen = null;
+                Method getToolbar = null;
+                try {
+                    setDrawerOpen = oneUiDrawerLayout.getClass().getMethod("setDrawerOpen", boolean.class, boolean.class);
+                } catch (NoSuchMethodException ignored) {}
+                try {
+                    getToolbar = oneUiDrawerLayout.getClass().getMethod("getToolbar");
+                } catch (NoSuchMethodException ignored) {}
+
+                // If OneUI exposes a toolbar inside the drawer, prefer its toolbar for navigation clicks
+                if (getToolbar != null) {
+                    Object maybeToolbar = getToolbar.invoke(oneUiDrawerLayout);
+                    if (maybeToolbar instanceof Toolbar) {
+                        toolbar = (Toolbar) maybeToolbar;
+                        setSupportActionBar(toolbar);
+                    }
+                }
+
+                final Method finalSetDrawerOpen = setDrawerOpen;
+                toolbar.setNavigationOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        try {
+                            if (finalSetDrawerOpen != null) {
+                                // toggle: attempt to read state via isDrawerOpen(int) if exists, otherwise just call open(true)
+                                boolean isOpen = false;
+                                try {
+                                    Method isOpenM = oneUiDrawerLayout.getClass().getMethod("isDrawerOpen", int.class);
+                                    Object res = isOpenM.invoke(oneUiDrawerLayout, GravityCompat.START);
+                                    if (res instanceof Boolean) isOpen = (Boolean) res;
+                                } catch (Exception ignored) {}
+                                finalSetDrawerOpen.invoke(oneUiDrawerLayout, !isOpen, true);
+                            }
+                        } catch (Exception e) {
+                            Log.w(TAG, "OneUI toggle failed: " + e.getMessage());
+                        }
+                    }
+                });
+            } catch (Exception e) {
+                Log.w(TAG, "OneUI drawer hookup failed: " + e.getMessage());
+            }
+        } else {
+            // No usable drawer found; still apply toolbar typeface etc.
+            if (toolbar != null) {
+                applyTypefaceToToolbar();
+            }
         }
 
         applyTypefaceToToolbar();
@@ -93,6 +158,49 @@ public abstract class BaseActivity extends AppCompatActivity {
         try {
             RecyclerView.Adapter adapter = drawerRecyclerView.getAdapter();
             if (adapter != null) adapter.notifyDataSetChanged();
+        } catch (Exception ignored) {}
+    }
+
+    // Utility helpers for other classes to control drawer safely
+
+    protected boolean isDrawerOpen() {
+        try {
+            if (drawerLayout != null) {
+                return drawerLayout.isDrawerOpen(GravityCompat.START);
+            } else if (oneUiDrawerLayout != null) {
+                try {
+                    Method m = oneUiDrawerLayout.getClass().getMethod("isDrawerOpen", int.class);
+                    Object res = m.invoke(oneUiDrawerLayout, GravityCompat.START);
+                    if (res instanceof Boolean) return (Boolean) res;
+                } catch (Exception ignored) {}
+            }
+        } catch (Exception ignored) {}
+        return false;
+    }
+
+    protected void openDrawer(boolean animate) {
+        try {
+            if (drawerLayout != null) {
+                drawerLayout.openDrawer(GravityCompat.START);
+            } else if (oneUiDrawerLayout != null) {
+                try {
+                    Method m = oneUiDrawerLayout.getClass().getMethod("setDrawerOpen", boolean.class, boolean.class);
+                    m.invoke(oneUiDrawerLayout, true, animate);
+                } catch (Exception ignored) {}
+            }
+        } catch (Exception ignored) {}
+    }
+
+    protected void closeDrawer(boolean animate) {
+        try {
+            if (drawerLayout != null) {
+                drawerLayout.closeDrawer(GravityCompat.START);
+            } else if (oneUiDrawerLayout != null) {
+                try {
+                    Method m = oneUiDrawerLayout.getClass().getMethod("setDrawerOpen", boolean.class, boolean.class);
+                    m.invoke(oneUiDrawerLayout, false, animate);
+                } catch (Exception ignored) {}
+            }
         } catch (Exception ignored) {}
     }
 }
