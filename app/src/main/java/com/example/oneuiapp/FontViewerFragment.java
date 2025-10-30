@@ -547,4 +547,4 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
         }
         return out;
     }
-            }
+    }

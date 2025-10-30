@@ -20,8 +20,8 @@ public class SettingsHelper {
     private static final String KEYLANGUAGEMODE = "language_mode";
     private static final String KEYTHEMEMODE = "theme_mode";
     private static final String KEYFONTMODE = "font_mode";
-    private static final String KEYPREVIEWTEXT = "preview_text";
     private static final String KEYNOTIFICATIONSENABLED = "notifications_enabled";
+    private static final String KEYPREVIEWTEXT = "preview_text";
 
     public static final int LANGUAGE_SYSTEM = 0;
     public static final int LANGUAGE_ARABIC = 1;
@@ -43,86 +43,28 @@ public class SettingsHelper {
         this.prefs = this.context.getSharedPreferences(PREFSNAME, Context.MODE_PRIVATE);
     }
 
-    // ---------------------------
-    // Static initializer used by MyApplication
-    // ---------------------------
-    public static void initializeFromSettings(Context context) {
-        SettingsHelper helper = new SettingsHelper(context);
-        helper.applyTheme();
-        // if you want to apply locale or font at startup, call them here
-        // helper.applyLanguageIfNeeded((Activity) context);
-    }
-
-    // ---------------------------
-    // Language
-    // ---------------------------
+    // ---------------- Language ----------------
     public int getLanguageMode() {
         String v = prefs.getString(KEYLANGUAGEMODE, String.valueOf(LANGUAGE_SYSTEM));
-        try {
-            return Integer.parseInt(v);
-        } catch (Exception e) {
-            return LANGUAGE_SYSTEM;
-        }
+        try { return Integer.parseInt(v); } catch (Exception e) { return LANGUAGE_SYSTEM; }
     }
 
     public void setLanguageMode(int mode) {
         prefs.edit().putString(KEYLANGUAGEMODE, String.valueOf(mode)).apply();
     }
 
-    public static Locale getLocale(Context ctx) {
-        SharedPreferences p = ctx.getSharedPreferences(PREFSNAME, Context.MODE_PRIVATE);
-        String modeStr = p.getString(KEYLANGUAGEMODE, String.valueOf(LANGUAGE_SYSTEM));
-        int mode;
-        try {
-            mode = Integer.parseInt(modeStr);
-        } catch (Exception e) {
-            mode = LANGUAGE_SYSTEM;
-        }
-
-        switch (mode) {
-            case LANGUAGE_ARABIC:
-                return new Locale("ar");
-            case LANGUAGE_ENGLISH:
-                return new Locale("en");
-            case LANGUAGE_SYSTEM:
-            default:
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                    return Resources.getSystem().getConfiguration().getLocales().get(0);
-                } else {
-                    return Resources.getSystem().getConfiguration().locale;
-                }
-        }
-    }
-
-    // Apply language to an activity (recreate to apply)
     public void applyLanguage(Activity activity) {
         activity.recreate();
     }
 
-    // ---------------------------
-    // Theme
-    // ---------------------------
+    // ---------------- Theme ----------------
     public int getThemeMode() {
-        // Try int first, fallback to string parse for compatibility
-        try {
-            return prefs.getInt(KEYTHEMEMODE, THEME_SYSTEM);
-        } catch (ClassCastException e) {
-            try {
-                String s = prefs.getString(KEYTHEMEMODE, String.valueOf(THEME_SYSTEM));
-                return Integer.parseInt(s);
-            } catch (Exception ex) {
-                return THEME_SYSTEM;
-            }
-        }
+        String v = prefs.getString(KEYTHEMEMODE, String.valueOf(THEME_SYSTEM));
+        try { return Integer.parseInt(v); } catch (Exception e) { return THEME_SYSTEM; }
     }
 
     public void setThemeMode(int mode) {
-        // store as int for clarity; keep compatibility with existing string storage
-        try {
-            prefs.edit().putInt(KEYTHEMEMODE, mode).apply();
-        } catch (Exception e) {
-            prefs.edit().putString(KEYTHEMEMODE, String.valueOf(mode)).apply();
-        }
+        prefs.edit().putString(KEYTHEMEMODE, String.valueOf(mode)).apply();
     }
 
     public void applyTheme() {
@@ -141,16 +83,10 @@ public class SettingsHelper {
         }
     }
 
-    // ---------------------------
-    // Font
-    // ---------------------------
+    // ---------------- Font ----------------
     public int getFontMode() {
         String v = prefs.getString(KEYFONTMODE, String.valueOf(FONT_SYSTEM));
-        try {
-            return Integer.parseInt(v);
-        } catch (Exception e) {
-            return FONT_SYSTEM;
-        }
+        try { return Integer.parseInt(v); } catch (Exception e) { return FONT_SYSTEM; }
     }
 
     public void setFontMode(int mode) {
@@ -176,22 +112,23 @@ public class SettingsHelper {
         }
     }
 
-    // ---------------------------
-    // Preview text
-    // ---------------------------
-    public void setPreviewText(String text) {
-        prefs.edit().putString(KEYPREVIEWTEXT, text == null ? "" : text).apply();
+    // ---------------- Preview text ----------------
+    private String getPreviewTextInternal() {
+        // ✅ الآن يستدعي resource الصحيح
+        String def = context.getString(R.string.settings_preview_text_default);
+        return prefs.getString(KEYPREVIEWTEXT, def);
     }
 
     public static String getPreviewText(Context ctx) {
         SettingsHelper sh = new SettingsHelper(ctx);
-        String def = ctx.getString(R.string.settings_preview_text_default);
-        return sh.prefs.getString(KEYPREVIEWTEXT, def);
+        return sh.getPreviewTextInternal();
     }
 
-    // ---------------------------
-    // Notifications
-    // ---------------------------
+    public void setPreviewText(String text) {
+        prefs.edit().putString(KEYPREVIEWTEXT, text == null ? "" : text).apply();
+    }
+
+    // ---------------- Notifications ----------------
     public boolean areNotificationsEnabled() {
         return prefs.getBoolean(KEYNOTIFICATIONSENABLED, true);
     }
@@ -200,13 +137,48 @@ public class SettingsHelper {
         prefs.edit().putBoolean(KEYNOTIFICATIONSENABLED, enabled).apply();
     }
 
-    // ---------------------------
-    // Context / Locale wrapper
-    // ---------------------------
-    public static Context wrapContext(Context context) {
-        Locale locale = getLocale(context);
-        Locale.setDefault(locale);
+    // ---------------- Locale helpers ----------------
+    public static Locale getLocale(Context ctx) {
+        SharedPreferences p = ctx.getSharedPreferences(PREFSNAME, Context.MODE_PRIVATE);
+        String modeStr = p.getString(KEYLANGUAGEMODE, String.valueOf(LANGUAGE_SYSTEM));
+        int mode;
+        try { mode = Integer.parseInt(modeStr); } catch (Exception e) { mode = LANGUAGE_SYSTEM; }
 
+        switch (mode) {
+            case LANGUAGE_ARABIC: return new Locale("ar");
+            case LANGUAGE_ENGLISH: return new Locale("en");
+            case LANGUAGE_SYSTEM:
+            default:
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    return Resources.getSystem().getConfiguration().getLocales().get(0);
+                } else {
+                    return Resources.getSystem().getConfiguration().locale;
+                }
+        }
+    }
+
+    @SuppressWarnings("deprecation")
+    public static Context wrapContext(Context context) {
+        SharedPreferences p = context.getSharedPreferences(PREFSNAME, Context.MODE_PRIVATE);
+        String modeStr = p.getString(KEYLANGUAGEMODE, String.valueOf(LANGUAGE_SYSTEM));
+        int mode;
+        try { mode = Integer.parseInt(modeStr); } catch (Exception e) { mode = LANGUAGE_SYSTEM; }
+
+        Locale locale;
+        switch (mode) {
+            case LANGUAGE_ARABIC: locale = new Locale("ar"); break;
+            case LANGUAGE_ENGLISH: locale = new Locale("en"); break;
+            case LANGUAGE_SYSTEM:
+            default:
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    locale = Resources.getSystem().getConfiguration().getLocales().get(0);
+                } else {
+                    locale = Resources.getSystem().getConfiguration().locale;
+                }
+                break;
+        }
+
+        Locale.setDefault(locale);
         Configuration config = new Configuration(context.getResources().getConfiguration());
         config.setLocale(locale);
 
@@ -216,5 +188,10 @@ public class SettingsHelper {
             context.getResources().updateConfiguration(config, context.getResources().getDisplayMetrics());
             return context;
         }
+    }
+
+    public static void initializeFromSettings(Context context) {
+        SettingsHelper helper = new SettingsHelper(context);
+        helper.applyTheme();
     }
     }

@@ -2,36 +2,65 @@ package com.example.oneuiapp;
 
 import android.content.Context;
 import android.graphics.Typeface;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.TextView;
+import android.util.Log;
+
+import java.lang.reflect.Field;
 
 /**
- * FontHelper (نسخة مبسطة):
- * - لم نعد نستخدم Reflection لتغيير Typeface.
- * - SettingsHelper.wrapContext + BaseActivity يتكفلان بتطبيق الخط عالمياً.
- * - هذا الكلاس يبقى فقط للتوافق مع الكود القديم.
+ * FontHelper النهائي:
+ * - يطبّق الخط المختار من SettingsHelper على مستوى النظام.
+ * - إذا كان الخط = System Font يرجّع القيم الافتراضية.
+ * - يستخدم Reflection لتغيير الحقول الثابتة في Typeface.
  */
 public class FontHelper {
 
+    private static final String TAG = "FontHelper";
+
     public static void applyFont(Context context) {
-        // لم نعد بحاجة لتطبيق الخط هنا
-        // الخط يطبق تلقائياً عبر SettingsHelper.wrapContext
+        Typeface custom = SettingsHelper.getTypeface(context);
+
+        if (custom == null) {
+            // ✅ رجوع للخط الافتراضي للنظام
+            resetToSystemFonts();
+            return;
+        }
+
+        try {
+            replaceTypefaceField("DEFAULT", custom);
+            replaceTypefaceField("DEFAULT_BOLD", Typeface.create(custom, Typeface.BOLD));
+            replaceTypefaceField("SANS_SERIF", custom);
+            replaceTypefaceField("SERIF", custom);
+            replaceTypefaceField("MONOSPACE", custom);
+        } catch (Exception e) {
+            Log.e(TAG, "applyFont failed", e);
+        }
     }
 
-    /**
-     * دالة اختيارية: لو أردت تطبيق الخط يدوياً على View معين.
-     */
-    public static void applyFontToView(View view, Typeface typeface) {
-        if (view == null || typeface == null) return;
+    private static void replaceTypefaceField(String fieldName, Typeface newTf) {
+        try {
+            Field field = Typeface.class.getDeclaredField(fieldName);
+            field.setAccessible(true);
+            field.set(null, newTf);
+        } catch (Exception e) {
+            Log.w(TAG, "replaceTypefaceField failed for " + fieldName, e);
+        }
+    }
 
-        if (view instanceof TextView) {
-            ((TextView) view).setTypeface(typeface);
-        } else if (view instanceof ViewGroup) {
-            ViewGroup vg = (ViewGroup) view;
-            for (int i = 0; i < vg.getChildCount(); i++) {
-                applyFontToView(vg.getChildAt(i), typeface);
-            }
+    private static void resetToSystemFonts() {
+        try {
+            Typeface def = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL);
+            Typeface defBold = Typeface.create(Typeface.DEFAULT, Typeface.BOLD);
+            Typeface sans = Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL);
+            Typeface serif = Typeface.create(Typeface.SERIF, Typeface.NORMAL);
+            Typeface mono = Typeface.create(Typeface.MONOSPACE, Typeface.NORMAL);
+
+            replaceTypefaceField("DEFAULT", def);
+            replaceTypefaceField("DEFAULT_BOLD", defBold);
+            replaceTypefaceField("SANS_SERIF", sans);
+            replaceTypefaceField("SERIF", serif);
+            replaceTypefaceField("MONOSPACE", mono);
+        } catch (Exception e) {
+            Log.e(TAG, "resetToSystemFonts failed", e);
         }
     }
 }

@@ -4,25 +4,27 @@ import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-
+import android.graphics.drawable.Drawable;
 import androidx.annotation.NonNull;
+import androidx.appcompat.content.res.AppCompatResources;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.RecyclerView;
-
+import java.lang.reflect.Field;
 import java.util.List;
 
 public class DrawerListAdapter extends RecyclerView.Adapter<DrawerListViewHolder> {
 
-    private final Context mContext;
-    private final List<Fragment> mFragments;
-    private final DrawerListener mListener;
+    private Context mContext;
+    private List<Fragment> mFragments;
+    private DrawerListener mListener;
     private int mSelectedPos = 0;
 
     public interface DrawerListener {
         boolean onDrawerItemSelected(int position);
     }
 
-    public DrawerListAdapter(@NonNull Context context, List<Fragment> fragments, DrawerListener listener) {
+    public DrawerListAdapter(
+            @NonNull Context context, List<Fragment> fragments, DrawerListener listener) {
         mContext = context;
         mFragments = fragments;
         mListener = listener;
@@ -31,35 +33,55 @@ public class DrawerListAdapter extends RecyclerView.Adapter<DrawerListViewHolder
     @NonNull
     @Override
     public DrawerListViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(mContext).inflate(R.layout.drawer_list_item, parent, false);
-        return new DrawerListViewHolder(view, false);
+        LayoutInflater inflater = LayoutInflater.from(mContext);
+        View view = inflater.inflate(R.layout.drawer_list_item, parent, false);
+        return new DrawerListViewHolder(view);
     }
 
     @Override
     public void onBindViewHolder(@NonNull DrawerListViewHolder holder, int position) {
         Fragment fragment = mFragments.get(position);
 
-        String title = "Item " + position;
+        // ★★★ تحديث: أضفنا دعم FontViewerFragment ★★★
         int iconRes = 0;
-
-        // If fragments implement a simple interface to provide title/icon, use it
-        if (fragment instanceof BaseFragmentTitleProvider) {
-            BaseFragmentTitleProvider p = (BaseFragmentTitleProvider) fragment;
-            title = p.getTitle();
-            iconRes = p.getIconResId();
+        String title = "";
+        
+        if (fragment instanceof HomeFragment) {
+            iconRes = getOneUiIconId("ic_oui_home");
+            title = mContext.getString(R.string.drawer_home);
+        } else if (fragment instanceof SettingsFragment) {
+            iconRes = getOneUiIconId("ic_oui_settings");
+            title = mContext.getString(R.string.drawer_settings);
+        } else if (fragment instanceof FontViewerFragment) {
+            // ★★★ جديد: دعم FontViewerFragment ★★★
+            iconRes = getOneUiIconId("ic_oui_folder");  // أو أي أيقونة مناسبة أخرى
+            title = mContext.getString(R.string.drawer_font_viewer);
         }
 
-        holder.setTitle(title);
-        if (iconRes != 0) holder.setIcon(iconRes);
+        if (iconRes != 0) {
+            holder.setIcon(iconRes);
+        }
+        if (!title.isEmpty()) {
+            holder.setTitle(title);
+        }
 
         holder.setSelected(position == mSelectedPos);
-        holder.applyTypeface(SettingsHelper.getTypeface(mContext));
-
+        
         holder.itemView.setOnClickListener(v -> {
-            int pos = holder.getBindingAdapterPosition();
-            if (pos == RecyclerView.NO_POSITION) return;
-            boolean handled = mListener != null && mListener.onDrawerItemSelected(pos);
-            if (handled) setSelectedItem(pos);
+            final int itemPos = holder.getBindingAdapterPosition();
+            
+            if (itemPos == RecyclerView.NO_POSITION) {
+                return;
+            }
+            
+            boolean selectionChanged = false;
+            if (mListener != null) {
+                selectionChanged = mListener.onDrawerItemSelected(itemPos);
+            }
+            
+            if (selectionChanged) {
+                setSelectedItem(itemPos);
+            }
         });
     }
 
@@ -69,11 +91,30 @@ public class DrawerListAdapter extends RecyclerView.Adapter<DrawerListViewHolder
     }
 
     public void setSelectedItem(int position) {
-        int prev = mSelectedPos;
+        if (position < 0 || position >= getItemCount()) {
+            return;
+        }
+        
+        int previousPos = mSelectedPos;
         mSelectedPos = position;
-        if (prev != position) {
-            notifyItemChanged(prev);
+        
+        if (previousPos != position) {
+            notifyItemChanged(previousPos);
             notifyItemChanged(position);
         }
+    }
+
+    private int getOneUiIconId(String name) {
+        try {
+            Class<?> r = Class.forName("dev.oneuiproject.oneui.R$drawable");
+            Field f = r.getField(name);
+            return f.getInt(null);
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+    
+    public int getSelectedPosition() {
+        return mSelectedPos;
     }
 }

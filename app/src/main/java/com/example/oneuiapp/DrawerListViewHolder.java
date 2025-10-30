@@ -1,47 +1,47 @@
 package com.example.oneuiapp;
 
+import android.content.Context;
 import android.graphics.Typeface;
 import android.text.TextUtils;
 import android.view.View;
 import android.widget.TextView;
-
 import androidx.annotation.DrawableRes;
+import androidx.annotation.NonNull;
 import androidx.appcompat.widget.AppCompatImageView;
 import androidx.recyclerview.widget.RecyclerView;
 
 public class DrawerListViewHolder extends RecyclerView.ViewHolder {
 
-    private final AppCompatImageView icon;
-    private final TextView title;
-    private Typeface normalTf = null;
-    private Typeface selectedTf = null;
+    private AppCompatImageView mIconView;
+    private TextView mTitleView;
 
-    public DrawerListViewHolder(View itemView, boolean isSeparator) {
+    public DrawerListViewHolder(@NonNull View itemView) {
         super(itemView);
-        icon = itemView.findViewById(R.id.drawer_item_icon);
-        title = itemView.findViewById(R.id.drawer_item_title);
+        mIconView = itemView.findViewById(R.id.drawer_item_icon);
+        mTitleView = itemView.findViewById(R.id.drawer_item_title);
     }
 
     public void setIcon(@DrawableRes int resId) {
-        if (icon != null) icon.setImageResource(resId);
+        mIconView.setImageResource(resId);
     }
 
-    public void setTitle(CharSequence txt) {
-        if (title != null) title.setText(txt);
+    public void setTitle(String title) {
+        mTitleView.setText(title);
     }
 
     public void setSelected(boolean selected) {
-        if (title == null) return;
         itemView.setSelected(selected);
-        if (selected && selectedTf != null) title.setTypeface(selectedTf);
-        else if (normalTf != null) title.setTypeface(normalTf);
-        title.setEllipsize(selected ? TextUtils.TruncateAt.MARQUEE : TextUtils.TruncateAt.END);
-    }
 
-    public void applyTypeface(Typeface tf) {
-        if (tf == null) return;
-        normalTf = tf;
-        selectedTf = Typeface.create(tf, Typeface.BOLD);
-        if (title != null) title.setTypeface(normalTf);
+        Context ctx = itemView.getContext();
+        Typeface chosen = SettingsHelper.getTypeface(ctx);
+
+        if (chosen == null) {
+            Typeface fallback = Typeface.create(Typeface.SANS_SERIF, selected ? Typeface.BOLD : Typeface.NORMAL);
+            mTitleView.setTypeface(fallback);
+        } else {
+            mTitleView.setTypeface(selected ? Typeface.create(chosen, Typeface.BOLD) : chosen);
+        }
+
+        mTitleView.setEllipsize(selected ? TextUtils.TruncateAt.MARQUEE : TextUtils.TruncateAt.END);
     }
 }
