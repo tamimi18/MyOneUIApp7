@@ -599,4 +599,3 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
         return out;
     }
 }
-```[43dcd9a7-70db-4a1f-b0ae-981daa162054](https://github.com/therajanmaurya/Bulk-SMS-Service/tree/6ea8bfc1abf88f118f23f4e53db00ef8e65b17fa/app%2Fsrc%2Fmain%2Fjava%2Fin%2Fcic%2Fbulksms%2FOpenPhoneContact.java?citationMarker=43dcd9a7-70db-4a1f-b0ae-981daa162054&citationId=1&citationId=2 "github.com")
