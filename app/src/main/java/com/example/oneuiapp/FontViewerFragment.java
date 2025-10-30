@@ -42,8 +42,12 @@ import java.util.concurrent.Executors;
 
 /**
  * FontViewerFragment - عارض الخطوط مع تحديث تلقائي لنص المعاينة
- * تم تحسين قراءة جداول name، دعم ترميزات إضافية، وحفظ persistable URI،
- * ونقل عمليات I/O و parsing إلى خيط خلفي.
+ * تحسين:
+ *  - تمرير takeFlags لاختبار persistable URI بشكل موثوق
+ *  - دعم اكتشاف TTC (TrueType Collection) بسيط
+ *  - حفظ path بعد النسخ إلى storage المحلي
+ *  - تنظيف الموارد عند onDestroyView
+ *  - تعديلات طفيفة لتحسين استرجاع الاسم الحقيقي للخط
  */
 public class FontViewerFragment extends Fragment implements SharedPreferences.OnSharedPreferenceChangeListener {
 
@@ -107,19 +111,17 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
                     Intent data = result.getData();
                     Uri fontUri = data.getData();
                     if (fontUri != null) {
-                        // حاول أخذ persistable permission إذا كانت متاحة
-                        try {
-                            final int flags = data.getFlags();
-                            final int takeFlags = flags & (Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-                            if ((flags & Intent.FLAG_GRANT_READ_URI_PERMISSION) != 0) {
-                                try {
-                                    requireContext().getContentResolver().takePersistableUriPermission(fontUri, takeFlags);
-                                } catch (SecurityException se) {
-                                    Log.w(TAG, "takePersistableUriPermission failed: " + se.getMessage());
-                                }
+                        // استخرج takeFlags من intent ثم حاول أخذ persistable permission هنا
+                        final int flags = data.getFlags();
+                        final int takeFlags = flags & (Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                        if ((flags & Intent.FLAG_GRANT_READ_URI_PERMISSION) != 0) {
+                            try {
+                                requireContext().getContentResolver().takePersistableUriPermission(fontUri, takeFlags);
+                            } catch (SecurityException se) {
+                                Log.w(TAG, "takePersistableUriPermission failed: " + se.getMessage());
+                            } catch (Exception e) {
+                                Log.w(TAG, "takePersistableUriPermission error: " + e.getMessage());
                             }
-                        } catch (Exception e) {
-                            Log.w(TAG, "Error handling persistable permission: " + e.getMessage());
                         }
 
                         // قم بالنسخ والمعالجة في خيط خلفي
@@ -131,10 +133,14 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
                                 realName = extractFontRealName(copied);
                                 final String finalRealName = realName;
                                 final String finalFileName = fileName != null ? fileName : copied.getName();
-                                // سطِّر عملية إنشاء typeface على الواجهة الرئيسية (إن لزم)
+                                // احفظ أيضًا المسار المحلي لأننا نسخنا الملف داخل app storage
+                                saveLastUsedFont(copied.getAbsolutePath(), finalFileName, finalRealName);
+                                final Uri finalUri = fontUri;
+                                // سطِّر عملية إنشاء typeface على الواجهة الرئيسية
                                 mainHandler.post(() -> {
                                     loadFontFromPath(copied.getAbsolutePath(), finalFileName, finalRealName);
-                                    saveLastUsedFontUri(fontUri, finalFileName, finalRealName);
+                                    // سجل URI مع takeFlags حتى يمكن استعادته بشكل آمن لاحقاً
+                                    saveLastUsedFontUri(finalUri, finalFileName, finalRealName, takeFlags);
                                 });
                             } else {
                                 mainHandler.post(() -> {
@@ -202,6 +208,15 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
         if (sharedPreferences != null) {
             sharedPreferences.unregisterOnSharedPreferenceChangeListener(this);
         }
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        // تنظيف مراجع الواجهة لمنع NullPointer و memory leaks
+        selectFontButton = null;
+        previewSentence = null;
+        previewNumbers = null;
     }
 
     @Override
@@ -354,8 +369,8 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
 
     private void applyFontToPreviewTexts() {
         if (currentTypeface != null) {
-            previewSentence.setTypeface(currentTypeface);
-            previewNumbers.setTypeface(currentTypeface);
+            if (previewSentence != null) previewSentence.setTypeface(currentTypeface);
+            if (previewNumbers != null) previewNumbers.setTypeface(currentTypeface);
         }
     }
 
@@ -430,14 +445,16 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
 
     /**
      * احفظ URI الممنوح كـ String وحاول أخذ persistable permission.
+     * أضفت معلمة takeFlags لتمرير ما تم استخلاصه من Intent.flags.
      */
-    private void saveLastUsedFontUri(Uri uri, String fileName, String realName) {
+    private void saveLastUsedFontUri(Uri uri, String fileName, String realName, int takeFlags) {
         try {
-            // محاولة أخذ صلاحية قابلة للاستمرار إن كانت متاحة في Intent السابق
-            try {
-                requireContext().getContentResolver().takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            } catch (SecurityException se) {
-                Log.w(TAG, "takePersistableUriPermission failed: " + se.getMessage());
+            if (takeFlags != 0) {
+                try {
+                    requireContext().getContentResolver().takePersistableUriPermission(uri, takeFlags);
+                } catch (SecurityException se) {
+                    Log.w(TAG, "takePersistableUriPermission failed: " + se.getMessage());
+                }
             }
         } catch (Exception e) {
             Log.w(TAG, "saveLastUsedFontUri permission handling failed: " + e.getMessage());
@@ -468,6 +485,8 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
                     if (fontFile != null && fontFile.exists()) {
                         final String fn = lastFileName != null ? lastFileName : fontFile.getName();
                         final String rn = lastRealName != null ? lastRealName : extractFontRealName(fontFile);
+                        // حفظ path المحلّي لأننا نسخنا الملف
+                        saveLastUsedFont(fontFile.getAbsolutePath(), fn, rn);
                         mainHandler.post(() -> loadFontFromPath(fontFile.getAbsolutePath(), fn, rn));
                     } else {
                         // قد يكون الملف في storage سابقًا محفوظًا في PREF_LAST_FONT_PATH كاحتياط
@@ -622,17 +641,36 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
 
     private String extractFontRealName(File fontFile) {
         try (RandomAccessFile raf = new RandomAccessFile(fontFile, "r")) {
+            // اكتشاف نوع الملف (TTC أو SFNT)
             raf.seek(0);
-            int sfntVersion = raf.readInt();
+            byte[] header = new byte[4];
+            raf.readFully(header);
+            String hdr = new String(header, StandardCharsets.US_ASCII);
+            long nameTableOffset = -1;
 
+            if ("ttcf".equals(hdr)) {
+                // قراءة TTC header: تخطي الإصدار ثم قراءة عدد الخطوط ثم أخذ أول offset
+                raf.skipBytes(4); // TTC version (major/minor)
+                int numFonts = raf.readInt();
+                if (numFonts > 0) {
+                    long firstOffset = ((long) raf.readInt()) & 0xFFFFFFFFL;
+                    raf.seek(firstOffset);
+                    // استمر كأننا في ملف خط عادي من هذا الإزاحة
+                } else {
+                    return "Unknown Font";
+                }
+            } else {
+                // لم يكن TTC، عد إلى بداية للتحقق من sfntVersion كقيمة int
+                raf.seek(0);
+            }
+
+            int sfntVersion = raf.readInt();
             if (sfntVersion != 0x00010000 && sfntVersion != 0x4F54544F) {
                 return "Unknown Font";
             }
 
             int numTables = raf.readUnsignedShort();
             raf.skipBytes(6);
-
-            long nameTableOffset = -1;
 
             for (int i = 0; i < numTables; i++) {
                 byte[] tag = new byte[4];
@@ -663,8 +701,8 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
 
             for (int i = 0; i < count; i++) {
                 int platformID = raf.readUnsignedShort();
-                raf.readUnsignedShort();
-                raf.readUnsignedShort();
+                raf.readUnsignedShort(); // encodingID
+                raf.readUnsignedShort(); // languageID
                 int nameID = raf.readUnsignedShort();
                 int length = raf.readUnsignedShort();
                 int offset = raf.readUnsignedShort();
@@ -688,10 +726,13 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
                     name = new String(nameBytes, StandardCharsets.ISO_8859_1);
                 }
 
-                if (nameID == 4) {
+                if (nameID == 4 && (fontName == null || fontName.isEmpty())) {
                     fontName = name;
-                } else if (nameID == 1 && familyName == null) {
+                } else if (nameID == 1 && (familyName == null || familyName.isEmpty())) {
                     familyName = name;
+                } else if (nameID == 6 && (fontName == null || fontName.isEmpty())) {
+                    // اسم PostScript قد يكون مفيداً كبديل
+                    fontName = fontName == null ? name : fontName;
                 }
 
                 raf.seek(currentPos);
@@ -712,4 +753,4 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
     private long readUInt32(RandomAccessFile raf) throws Exception {
         return ((long) raf.readInt()) & 0xFFFFFFFFL;
     }
-                }
+        }
