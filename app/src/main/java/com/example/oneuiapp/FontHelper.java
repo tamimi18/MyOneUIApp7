@@ -1,23 +1,30 @@
 package com.example.oneuiapp;
 
+import android.app.Activity;
 import android.content.Context;
 import android.graphics.Typeface;
 import android.os.Build;
 import android.util.Log;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.TextView;
+
+import androidx.appcompat.widget.AppCompatTextView;
+import androidx.appcompat.widget.Toolbar;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.Map;
 import java.util.HashMap;
-import java.util.Set;
+import java.util.Map;
 
 /**
  * FontHelper - يحاول تطبيق Typeface مخصص على مستوى التطبيق.
  * تحسينات:
- *  - تسجيل مفصل لتتبّع الأخطاء في GitHub Actions logs
- *  - استبدال الحقول المعروفة في Typeface
- *  - محاولة استبدال خريطة الخطوط النظامية إذا وجدت (sSystemFontMap / sDefaults)
- *  - fallback آمن يعيد الخطوط النظامية إذا فشل شيء
+ *  - استبدال حقول Typeface عبر reflection
+ *  - إمكانية تطبيق Typeface مباشرة على شجرة عرض (View hierarchy)
+ *  - Logging مفصّل لتشخيص المشاكل عبر CI logs
  */
 public class FontHelper {
 
@@ -25,6 +32,7 @@ public class FontHelper {
 
     /**
      * يقرأ Typeface من SettingsHelper ثم يحاول استبدال الحقول الثابتة في Typeface.
+     * بعد الاستبدال يكتفي أو يترك المهمة لتطبيق مباشر على Views باستخدام applyTypefaceToActivity.
      */
     public static void applyFont(Context context) {
         try {
@@ -52,10 +60,8 @@ public class FontHelper {
             replaced |= replaceTypefaceField("SERIF", custom);
             replaced |= replaceTypefaceField("MONOSPACE", custom);
 
-            // 2) محاولة استبدال خريطة الخطوط النظامية (Android قد يستخدم خريطة ثابتة داخل Typeface)
+            // 2) محاولة استبدال بعض خرائط النظام الشائعة
             try {
-                // بعض الإصدارات تحتوي على حقل باسم "sSystemFontMap" أو "sDefaults" أو "sTypefaceCache"
-                // نجرب مجموعة أسماء معروفة.
                 String[] candidateNames = {"sSystemFontMap", "sDefaults", "sTypefaceCache", "sSystemTypefaceMap"};
                 for (String candidate : candidateNames) {
                     try {
@@ -64,10 +70,9 @@ public class FontHelper {
                         Object value = f.get(null);
                         if (value instanceof Map) {
                             @SuppressWarnings("unchecked")
-                            Map<String, Typeface> map = (Map<String, Typeface>) value;
-                            Map<String, Typeface> newMap = new HashMap<>();
-                            // انسخ المفاتيح وحط نفس الـ custom كمحتوى أو حاول ملاءمة القيم
-                            for (String k : map.keySet()) {
+                            Map<Object, Typeface> map = (Map<Object, Typeface>) value;
+                            Map<Object, Typeface> newMap = new HashMap<>();
+                            for (Object k : map.keySet()) {
                                 newMap.put(k, custom);
                             }
                             f.set(null, newMap);
@@ -82,18 +87,17 @@ public class FontHelper {
                             replaced = true;
                             break;
                         } else {
-                            // حاول وضع خريطة جديدة عبر تحويل عام إن أمكن
                             Log.i(TAG, "Found field " + candidate + " but type is " + (value != null ? value.getClass().getName() : "null"));
                         }
                     } catch (NoSuchFieldException nsf) {
-                        // تجاهل الحقل غير الموجود
+                        // ignore
                     }
                 }
             } catch (Exception e) {
                 Log.w(TAG, "Failed replacing system font map: " + e.getMessage(), e);
             }
 
-            // 3) محاولة استدعاء أي method مساعدة إن وجدت (نادرة)
+            // 3) محاولة استدعاء أي method مساعدة إن وُجدت
             try {
                 Method[] methods = Typeface.class.getDeclaredMethods();
                 for (Method m : methods) {
@@ -101,21 +105,18 @@ public class FontHelper {
                     if (name.contains("set") && name.contains("system") && m.getParameterTypes().length > 0) {
                         m.setAccessible(true);
                         try {
-                            // حاول تمرير custom إلى أي method مناسبة
                             m.invoke(null, custom);
                             Log.i(TAG, "Invoked potential Typeface setter: " + m.getName());
                             replaced = true;
-                        } catch (Throwable ignore) {
-                        }
+                        } catch (Throwable ignore) { }
                     }
                 }
             } catch (Exception ignored) {}
 
-            // 4) Logging النهائي والـ fallback
             if (replaced) {
                 Log.i(TAG, "applyFont: replacement attempts done (some fields replaced).");
             } else {
-                Log.w(TAG, "applyFont: no fields replaced, will attempt reset fallback.");
+                Log.w(TAG, "applyFont: no fields replaced, fallback to resetToSystemFonts");
                 resetToSystemFonts();
             }
 
@@ -163,7 +164,6 @@ public class FontHelper {
             replaceTypefaceField("SERIF", serif);
             replaceTypefaceField("MONOSPACE", mono);
 
-            // حاول إعادة خريطة النظام إن أمكن
             try {
                 String[] candidateNames = {"sSystemFontMap", "sDefaults", "sTypefaceCache", "sSystemTypefaceMap"};
                 for (String candidate : candidateNames) {
@@ -173,11 +173,9 @@ public class FontHelper {
                         Object value = f.get(null);
                         if (value instanceof Map) {
                             @SuppressWarnings("unchecked")
-                            Map<String, Typeface> map = (Map<String, Typeface>) value;
-                            Map<String, Typeface> newMap = new HashMap<>();
-                            // أعد ملء الخريطة بقيم افتراضية
-                            for (String k : map.keySet()) {
-                                // حاول وضع sans كقيمة افتراضية
+                            Map<Object, Typeface> map = (Map<Object, Typeface>) value;
+                            Map<Object, Typeface> newMap = new HashMap<>();
+                            for (Object k : map.keySet()) {
                                 newMap.put(k, sans);
                             }
                             f.set(null, newMap);
@@ -191,7 +189,7 @@ public class FontHelper {
                             break;
                         }
                     } catch (NoSuchFieldException nsf) {
-                        // لا بأس: الحقل غير موجود على هذا الإصدار
+                        // ignore
                     }
                 }
             } catch (Exception e) {
@@ -203,4 +201,65 @@ public class FontHelper {
             Log.e(TAG, "resetToSystemFonts failed: " + e.getMessage(), e);
         }
     }
+
+    /**
+     * يطبّق Typeface المعطى مباشرة على شجرة العرض بدءاً من root.
+     * يدعم TextView, AppCompatTextView, Button, EditText, Toolbar titles.
+     * يمرّ عبر كافة الأطفال بشكل تكراري.
+     */
+    public static void applyTypefaceToView(View root, Typeface tf) {
+        if (root == null || tf == null) return;
+
+        try {
+            // TextView العام (يشمل AppCompatTextView لأنها ترث TextView)
+            if (root instanceof TextView) {
+                ((TextView) root).setTypeface(tf);
+                // من الأفضل إعادة رسم النص فوراً
+                root.invalidate();
+            } else if (root instanceof Button) {
+                ((Button) root).setTypeface(tf);
+                root.invalidate();
+            } else if (root instanceof EditText) {
+                ((EditText) root).setTypeface(tf);
+                root.invalidate();
+            } else if (root instanceof Toolbar) {
+                // عناوين الـ Toolbar تحتاج معاملة خاصة
+                Toolbar tb = (Toolbar) root;
+                // عنوان الـ toolbar
+                try {
+                    CharSequence t = tb.getTitle();
+                    tb.setTitle(t); // يفرض إعادة رسم العنوان
+                } catch (Exception ignored) { }
+                // عناصر children داخل الـ toolbar
+                for (int i = 0; i < tb.getChildCount(); i++) {
+                    View c = tb.getChildAt(i);
+                    applyTypefaceToView(c, tf);
                 }
+            }
+
+            // استمر في الأطفال لو كان ViewGroup
+            if (root instanceof ViewGroup) {
+                ViewGroup vg = (ViewGroup) root;
+                for (int i = 0; i < vg.getChildCount(); i++) {
+                    View child = vg.getChildAt(i);
+                    applyTypefaceToView(child, tf);
+                }
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "applyTypefaceToView failed on view " + root.getClass().getName() + ": " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * يطبّق الـ Typeface على كل عناصر Activity (عن طريق decorView).
+     */
+    public static void applyTypefaceToActivity(Activity a, Typeface tf) {
+        if (a == null || tf == null) return;
+        try {
+            View decor = a.getWindow().getDecorView();
+            applyTypefaceToView(decor, tf);
+        } catch (Exception e) {
+            Log.w(TAG, "applyTypefaceToActivity failed: " + e.getMessage(), e);
+        }
+    }
+                                }
