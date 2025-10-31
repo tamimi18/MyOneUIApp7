@@ -68,7 +68,7 @@
     <!-- إعدادات الخط -->
     <string name="settings_font">نمط الخط</string>
     <string name="settings_font_system">الافتراضي للنظام</string>
-    <string name="settings_font_wf_regular">WF عادي</string>
+    <string name="settings_font_wp_rglr">WP عادي</string>
     <string name="settings_font_samsung_one">Samsung One</string>
 
     <!-- ═══════════════════════════════════════════════════════════════
