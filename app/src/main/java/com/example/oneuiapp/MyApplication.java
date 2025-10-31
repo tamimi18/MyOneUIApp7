@@ -83,7 +83,7 @@ public class MyApplication extends Application {
                 case SettingsHelper.FONT_WP:
                     return R.style.AppFontOverlay_WP;
                 case SettingsHelper.FONT_SAMSUNG:
-                    return R.style.AppFontOverlay_SamsungOne;
+                    return R.style.AppFontOverlay_Samsung;
                 case SettingsHelper.FONT_SYSTEM:
                 default:
                     return 0;
