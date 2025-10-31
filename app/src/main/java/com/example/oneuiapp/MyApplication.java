@@ -20,11 +20,7 @@ public class MyApplication extends Application {
     protected void attachBaseContext(Context base) {
         super.attachBaseContext(SettingsHelper.wrapContext(base));
         sInstance = this;
-        try {
-            FontHelper.applyFont(base);
-        } catch (Exception e) {
-            Log.e(TAG, "applyFont failed in attachBaseContext", e);
-        }
+        // Removed FontHelper.applyFont here to avoid overriding theme overlay Typeface
     }
 
     @Override
@@ -35,11 +31,7 @@ public class MyApplication extends Application {
         CrashHandler.init(this);
         SettingsHelper.initializeFromSettings(this);
 
-        try {
-            FontHelper.applyFont(this);
-        } catch (Exception e) {
-            Log.e(TAG, "applyFont failed in onCreate", e);
-        }
+        // Removed FontHelper.applyFont(this) — font chosen via theme overlays, not global Typeface patching
 
         registerActivityLifecycleCallbacks(new ActivityLifecycleCallbacks() {
             @Override
@@ -47,11 +39,7 @@ public class MyApplication extends Application {
                 activities.add(new WeakReference<>(activity));
                 int overlayRes = getFontOverlayResIdForCurrentMode();
                 applyOverlayToActivityIfNeeded(activity, overlayRes);
-                try {
-                    FontHelper.applyFont(activity);
-                } catch (Exception e) {
-                    Log.w(TAG, "FontHelper.applyFont failed onActivityCreated", e);
-                }
+                // Removed FontHelper.applyFont(activity) to prevent conflicts with overlays
             }
 
             @Override public void onActivityStarted(Activity activity) {}
