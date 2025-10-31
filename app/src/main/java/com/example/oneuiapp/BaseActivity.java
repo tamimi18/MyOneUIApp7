@@ -5,14 +5,18 @@ import android.content.IntentFilter;
 import android.os.Build;
 import android.os.LocaleList;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.View;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.view.ContextThemeWrapper;
 
 /**
  * BaseActivity ensures the Activity context is wrapped with app settings (locale/theme)
  * and listens for font-change broadcasts to recreate itself.
  */
 public class BaseActivity extends AppCompatActivity {
+
+    private static final String TAG = "BaseActivity";
 
     private final android.content.BroadcastReceiver fontChangeReceiver = new android.content.BroadcastReceiver() {
         @Override
@@ -28,12 +32,12 @@ public class BaseActivity extends AppCompatActivity {
     @Override
     protected void attachBaseContext(Context newBase) {
         // Wrap context for locale first
-        Context wrapped = SettingsHelper.wrapContext(newBase);
+        Context wrappedLocaleCtx = SettingsHelper.wrapContext(newBase);
 
         // Determine overlay resource for current font mode (0 means system / no overlay)
         int overlayRes = 0;
         try {
-            SettingsHelper sh = new SettingsHelper(wrapped);
+            SettingsHelper sh = new SettingsHelper(wrappedLocaleCtx);
             int mode = sh.getFontMode();
             switch (mode) {
                 case SettingsHelper.FONT_WP:
@@ -47,16 +51,38 @@ public class BaseActivity extends AppCompatActivity {
                     overlayRes = 0;
                     break;
             }
-        } catch (Exception ignored) { }
+        } catch (Exception e) {
+            Log.w(TAG, "Failed to read font mode", e);
+            overlayRes = 0;
+        }
 
-        // If overlay exists, apply it to the theme of the wrapped context before super.attachBaseContext
+        Log.d(TAG, "attachBaseContext overlayRes=" + overlayRes);
+
+        // Create a ContextThemeWrapper using the existing app theme, then apply overlay to it
+        Context contextForAttach = wrappedLocaleCtx;
         try {
-            if (overlayRes != 0 && wrapped instanceof android.view.ContextThemeWrapper) {
-                ((android.view.ContextThemeWrapper) wrapped).getTheme().applyStyle(overlayRes, true);
-            }
-        } catch (Exception ignored) { }
+            int baseThemeRes = 0;
+            try {
+                baseThemeRes = newBase.getApplicationInfo().theme;
+            } catch (Exception ignored) { baseThemeRes = 0; }
 
-        super.attachBaseContext(wrapped);
+            ContextThemeWrapper ctxTw = (baseThemeRes != 0)
+                    ? new ContextThemeWrapper(wrappedLocaleCtx, baseThemeRes)
+                    : new ContextThemeWrapper(wrappedLocaleCtx, getApplicationInfo().theme);
+
+            if (overlayRes != 0) {
+                ctxTw.getTheme().applyStyle(overlayRes, true);
+                Log.d(TAG, "Applied overlay style resId=" + overlayRes);
+            } else {
+                Log.d(TAG, "No overlay applied (system font)");
+            }
+            contextForAttach = ctxTw;
+        } catch (Exception e) {
+            Log.w(TAG, "ContextThemeWrapper creation or applyStyle failed", e);
+            contextForAttach = wrappedLocaleCtx;
+        }
+
+        super.attachBaseContext(contextForAttach);
     }
 
     @Override
@@ -115,4 +141,4 @@ public class BaseActivity extends AppCompatActivity {
             }
         }
     }
-                }
+                             }
