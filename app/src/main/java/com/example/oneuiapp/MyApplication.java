@@ -10,17 +10,18 @@ import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * MyApplication: يحتفظ بقائمة الأنشطة ويعيد تطبيق الخط فوراً عبر تطبيق Typeface على Views.
+ */
 public class MyApplication extends Application {
 
     private static final String TAG = "MyApplication";
     private static MyApplication sInstance;
 
-    // قائمة لتخزين الأنشطة
     private static final List<WeakReference<Activity>> activities = new ArrayList<>();
 
     @Override
     protected void attachBaseContext(Context base) {
-        // apply locale wrapping early
         super.attachBaseContext(SettingsHelper.wrapContext(base));
         sInstance = this;
         try {
@@ -44,12 +45,10 @@ public class MyApplication extends Application {
             Log.e(TAG, "applyFont failed in onCreate", e);
         }
 
-        // تسجيل الأنشطة
         registerActivityLifecycleCallbacks(new ActivityLifecycleCallbacks() {
             @Override
             public void onActivityCreated(Activity activity, Bundle savedInstanceState) {
                 activities.add(new WeakReference<>(activity));
-                // تطبيق الخط مباشرة عند إنشاء أي Activity
                 try {
                     FontHelper.applyFont(activity);
                 } catch (Exception e) {
@@ -71,20 +70,35 @@ public class MyApplication extends Application {
     }
 
     /**
-     * إعادة إنشاء كل الأنشطة المفتوحة لتطبيق الخط الجديد
-     * الآن يتم استدعاء recreate() على كل Activity داخل الـ UI thread لضمان إعادة بناء الواجهات فوراً.
+     * إعادة إنشاء كل الأنشطة المفتوحة وتطبيق Typeface مباشرة على Views لضمان تغيير فوري.
      */
     public void recreateAllActivities() {
+        Typeface tf = SettingsHelper.getTypeface(this);
+
         for (WeakReference<Activity> ref : activities) {
             Activity act = ref.get();
             if (act != null && !act.isFinishing()) {
                 try {
-                    // نفذ recreate داخل UI thread الخاص بالنشاط
+                    // أولاً: جدول إعادة الإنشاء داخل UI thread الخاص بالنشاط
                     act.runOnUiThread(() -> {
                         try {
+                            // حاول إعادة الإنشاء أولاً
                             act.recreate();
                         } catch (Exception e) {
                             Log.w(TAG, "Activity.recreate failed for " + act.getClass().getName(), e);
+                        }
+
+                        // ثم مباشرة بعد ذلك، طبق الـ Typeface يدوياً على شجرة العرض لكي يحدث التغيير فوراً
+                        try {
+                            Typeface applyTf = SettingsHelper.getTypeface(act);
+                            if (applyTf != null) {
+                                FontHelper.applyTypefaceToActivity(act, applyTf);
+                            } else {
+                                // إذا لم يكن هناك typeface مخصص (System)، طبق reset: نستخدم default system typeface
+                                FontHelper.applyTypefaceToActivity(act, Typeface.create(Typeface.DEFAULT, Typeface.NORMAL));
+                            }
+                        } catch (Exception e) {
+                            Log.w(TAG, "Failed to apply typeface to activity views for " + act.getClass().getName(), e);
                         }
                     });
                 } catch (Exception e) {
@@ -93,4 +107,4 @@ public class MyApplication extends Application {
             }
         }
     }
-}
+                                                                   }
