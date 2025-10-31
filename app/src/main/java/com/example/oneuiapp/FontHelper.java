@@ -11,7 +11,6 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
-import androidx.appcompat.widget.AppCompatTextView;
 import androidx.appcompat.widget.Toolbar;
 
 import java.lang.reflect.Field;
@@ -20,11 +19,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * FontHelper - يحاول تطبيق Typeface مخصص على مستوى التطبيق.
- * تحسينات:
- *  - استبدال حقول Typeface عبر reflection
- *  - إمكانية تطبيق Typeface مباشرة على شجرة عرض (View hierarchy)
- *  - Logging مفصّل لتشخيص المشاكل عبر CI logs
+ * FontHelper - تطبيق Typeface على مستوى التطبيق.
+ * تحسينات مهمة: تستخدم applyTypefaceToView لفرض التطبيق الفوري حتى عند الرجوع لخط النظام.
  */
 public class FontHelper {
 
@@ -32,7 +28,7 @@ public class FontHelper {
 
     /**
      * يقرأ Typeface من SettingsHelper ثم يحاول استبدال الحقول الثابتة في Typeface.
-     * بعد الاستبدال يكتفي أو يترك المهمة لتطبيق مباشر على Views باستخدام applyTypefaceToActivity.
+     * إذا كانت القيمة null فهذا يعني "استخدم خط النظام" فندعو resetToSystemFonts.
      */
     public static void applyFont(Context context) {
         try {
@@ -53,14 +49,13 @@ public class FontHelper {
 
             boolean replaced = false;
 
-            // 1) استبدال الحقول المعروفة
             replaced |= replaceTypefaceField("DEFAULT", custom);
             replaced |= replaceTypefaceField("DEFAULT_BOLD", Typeface.create(custom, Typeface.BOLD));
             replaced |= replaceTypefaceField("SANS_SERIF", custom);
             replaced |= replaceTypefaceField("SERIF", custom);
             replaced |= replaceTypefaceField("MONOSPACE", custom);
 
-            // 2) محاولة استبدال بعض خرائط النظام الشائعة
+            // محاولة استبدال خريطة النظام إن وُجدت
             try {
                 String[] candidateNames = {"sSystemFontMap", "sDefaults", "sTypefaceCache", "sSystemTypefaceMap"};
                 for (String candidate : candidateNames) {
@@ -97,7 +92,7 @@ public class FontHelper {
                 Log.w(TAG, "Failed replacing system font map: " + e.getMessage(), e);
             }
 
-            // 3) محاولة استدعاء أي method مساعدة إن وُجدت
+            // محاولة استدعاء ميثود مساعدة لو وُجدت
             try {
                 Method[] methods = Typeface.class.getDeclaredMethods();
                 for (Method m : methods) {
@@ -126,10 +121,6 @@ public class FontHelper {
         }
     }
 
-    /**
-     * يستبدل حقل ثابت في Typeface باسم fieldName بالقيمة الجديدة newTf.
-     * يعيد true إذا نجح الاستبدال.
-     */
     private static boolean replaceTypefaceField(String fieldName, Typeface newTf) {
         try {
             Field field = Typeface.class.getDeclaredField(fieldName);
@@ -147,9 +138,6 @@ public class FontHelper {
         }
     }
 
-    /**
-     * يحاول إعادة الخطوط إلى الوضع الافتراضي للنظام بأمان.
-     */
     private static void resetToSystemFonts() {
         try {
             Typeface def = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL);
@@ -164,6 +152,7 @@ public class FontHelper {
             replaceTypefaceField("SERIF", serif);
             replaceTypefaceField("MONOSPACE", mono);
 
+            // محاولة استبدال خريطة النظام إن أمكن
             try {
                 String[] candidateNames = {"sSystemFontMap", "sDefaults", "sTypefaceCache", "sSystemTypefaceMap"};
                 for (String candidate : candidateNames) {
@@ -204,40 +193,40 @@ public class FontHelper {
 
     /**
      * يطبّق Typeface المعطى مباشرة على شجرة العرض بدءاً من root.
-     * يدعم TextView, AppCompatTextView, Button, EditText, Toolbar titles.
-     * يمرّ عبر كافة الأطفال بشكل تكراري.
+     * إذا كان typeface == null فإننا نطبّق Typeface.DEFAULT صراحة.
      */
     public static void applyTypefaceToView(View root, Typeface tf) {
-        if (root == null || tf == null) return;
+        if (root == null) return;
+        if (tf == null) {
+            tf = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL);
+        }
 
         try {
-            // TextView العام (يشمل AppCompatTextView لأنها ترث TextView)
             if (root instanceof TextView) {
                 ((TextView) root).setTypeface(tf);
-                // من الأفضل إعادة رسم النص فوراً
                 root.invalidate();
+                root.requestLayout();
             } else if (root instanceof Button) {
                 ((Button) root).setTypeface(tf);
                 root.invalidate();
+                root.requestLayout();
             } else if (root instanceof EditText) {
                 ((EditText) root).setTypeface(tf);
                 root.invalidate();
+                root.requestLayout();
             } else if (root instanceof Toolbar) {
-                // عناوين الـ Toolbar تحتاج معاملة خاصة
                 Toolbar tb = (Toolbar) root;
-                // عنوان الـ toolbar
+                // force title reapply
                 try {
                     CharSequence t = tb.getTitle();
-                    tb.setTitle(t); // يفرض إعادة رسم العنوان
+                    tb.setTitle(t);
                 } catch (Exception ignored) { }
-                // عناصر children داخل الـ toolbar
                 for (int i = 0; i < tb.getChildCount(); i++) {
                     View c = tb.getChildAt(i);
                     applyTypefaceToView(c, tf);
                 }
             }
 
-            // استمر في الأطفال لو كان ViewGroup
             if (root instanceof ViewGroup) {
                 ViewGroup vg = (ViewGroup) root;
                 for (int i = 0; i < vg.getChildCount(); i++) {
@@ -252,9 +241,10 @@ public class FontHelper {
 
     /**
      * يطبّق الـ Typeface على كل عناصر Activity (عن طريق decorView).
+     * يمرر null ليعني تطبيق خط النظام الافتراضي.
      */
     public static void applyTypefaceToActivity(Activity a, Typeface tf) {
-        if (a == null || tf == null) return;
+        if (a == null) return;
         try {
             View decor = a.getWindow().getDecorView();
             applyTypefaceToView(decor, tf);
@@ -262,4 +252,4 @@ public class FontHelper {
             Log.w(TAG, "applyTypefaceToActivity failed: " + e.getMessage(), e);
         }
     }
-                                }
+                      }
