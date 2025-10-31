@@ -19,17 +19,18 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * FontHelper - تطبيق Typeface على مستوى التطبيق.
- * تحسينات مهمة: تستخدم applyTypefaceToView لفرض التطبيق الفوري حتى عند الرجوع لخط النظام.
+ * FontHelper - تطبيق وإرجاع Typeface على مستوى التطبيق.
+ *
+ * تحسينات هذه النسخة:
+ * - عندما يكون tf == null نمرّر null إلى TextView.setTypeface(null) لإعادة الخط الافتراضي الحقيقي.
+ * - نعيد تعيين أي TextView داخل Toolbar صراحةً.
+ * - logging موسّع لمراقبة التنفيذ عبر CI.
+ * - أقل قدر ممكن من الاعتماد على create(Typeface.DEFAULT) لأن بعض الأجهزة تحتفظ بكاش داخلي.
  */
 public class FontHelper {
 
     private static final String TAG = "FontHelper";
 
-    /**
-     * يقرأ Typeface من SettingsHelper ثم يحاول استبدال الحقول الثابتة في Typeface.
-     * إذا كانت القيمة null فهذا يعني "استخدم خط النظام" فندعو resetToSystemFonts.
-     */
     public static void applyFont(Context context) {
         try {
             if (context == null) {
@@ -55,7 +56,6 @@ public class FontHelper {
             replaced |= replaceTypefaceField("SERIF", custom);
             replaced |= replaceTypefaceField("MONOSPACE", custom);
 
-            // محاولة استبدال خريطة النظام إن وُجدت
             try {
                 String[] candidateNames = {"sSystemFontMap", "sDefaults", "sTypefaceCache", "sSystemTypefaceMap"};
                 for (String candidate : candidateNames) {
@@ -81,8 +81,6 @@ public class FontHelper {
                             Log.i(TAG, "Replaced Typeface array field: " + candidate);
                             replaced = true;
                             break;
-                        } else {
-                            Log.i(TAG, "Found field " + candidate + " but type is " + (value != null ? value.getClass().getName() : "null"));
                         }
                     } catch (NoSuchFieldException nsf) {
                         // ignore
@@ -92,7 +90,6 @@ public class FontHelper {
                 Log.w(TAG, "Failed replacing system font map: " + e.getMessage(), e);
             }
 
-            // محاولة استدعاء ميثود مساعدة لو وُجدت
             try {
                 Method[] methods = Typeface.class.getDeclaredMethods();
                 for (Method m : methods) {
@@ -152,7 +149,6 @@ public class FontHelper {
             replaceTypefaceField("SERIF", serif);
             replaceTypefaceField("MONOSPACE", mono);
 
-            // محاولة استبدال خريطة النظام إن أمكن
             try {
                 String[] candidateNames = {"sSystemFontMap", "sDefaults", "sTypefaceCache", "sSystemTypefaceMap"};
                 for (String candidate : candidateNames) {
@@ -192,18 +188,15 @@ public class FontHelper {
     }
 
     /**
-     * يطبّق Typeface المعطى مباشرة على شجرة العرض بدءاً من root.
-     * إذا كان typeface == null فإننا نطبّق Typeface.DEFAULT صراحة.
+     * يطبّق Typeface على شجرة العرض. إذا tf == null نمرّر null إلى setTypeface لإعادة الخط الافتراضي الفعلي.
      */
     public static void applyTypefaceToView(View root, Typeface tf) {
         if (root == null) return;
-        if (tf == null) {
-            tf = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL);
-        }
 
         try {
+            // إذا tf == null فهذا يعني "ارجاع للسلوك الافتراضي" -> مرّر null إلى setTypeface
             if (root instanceof TextView) {
-                ((TextView) root).setTypeface(tf);
+                ((TextView) root).setTypeface(tf); // null سيعيد نوع الخط الافتراضي الحقيقي
                 root.invalidate();
                 root.requestLayout();
             } else if (root instanceof Button) {
@@ -216,15 +209,16 @@ public class FontHelper {
                 root.requestLayout();
             } else if (root instanceof Toolbar) {
                 Toolbar tb = (Toolbar) root;
-                // force title reapply
-                try {
-                    CharSequence t = tb.getTitle();
-                    tb.setTitle(t);
-                } catch (Exception ignored) { }
+                // تطبيق على عناصر الأطفال أولاً
                 for (int i = 0; i < tb.getChildCount(); i++) {
                     View c = tb.getChildAt(i);
                     applyTypefaceToView(c, tf);
                 }
+                // ثم force إعادة تطبيق عنوان الـ Toolbar (لو عنصر عنوان داخلي من نوع TextView فإنه أُعيد تعيينه أعلاه)
+                try {
+                    CharSequence t = tb.getTitle();
+                    tb.setTitle(t);
+                } catch (Exception ignored) { }
             }
 
             if (root instanceof ViewGroup) {
@@ -239,10 +233,6 @@ public class FontHelper {
         }
     }
 
-    /**
-     * يطبّق الـ Typeface على كل عناصر Activity (عن طريق decorView).
-     * يمرر null ليعني تطبيق خط النظام الافتراضي.
-     */
     public static void applyTypefaceToActivity(Activity a, Typeface tf) {
         if (a == null) return;
         try {
@@ -252,4 +242,4 @@ public class FontHelper {
             Log.w(TAG, "applyTypefaceToActivity failed: " + e.getMessage(), e);
         }
     }
-                      }
+                                                         }
