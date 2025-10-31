@@ -129,14 +129,7 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Prefer
             SettingsHelper sh = new SettingsHelper(mContext);
             sh.setFontMode(mode);
 
-            try {
-                // تطبيق الخط على مستوى Typeface
-                FontHelper.applyFont(mContext.getApplicationContext());
-            } catch (Exception e) {
-                android.util.Log.e("SettingsFragment", "FontHelper.applyFont failed", e);
-            }
-
-            // إعادة إنشاء كل الأنشطة عبر MyApplication (بدلاً من broadcast)
+            // Removed direct FontHelper.applyFont to rely on theme overlays applied in BaseActivity
             MyApplication app = MyApplication.getInstance();
             if (app != null) {
                 app.recreateAllActivities();
@@ -173,4 +166,4 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Prefer
 
         return true;
     }
-    }
+}
