@@ -27,7 +27,36 @@ public class BaseActivity extends AppCompatActivity {
 
     @Override
     protected void attachBaseContext(Context newBase) {
-        super.attachBaseContext(SettingsHelper.wrapContext(newBase));
+        // Wrap context for locale first
+        Context wrapped = SettingsHelper.wrapContext(newBase);
+
+        // Determine overlay resource for current font mode (0 means system / no overlay)
+        int overlayRes = 0;
+        try {
+            SettingsHelper sh = new SettingsHelper(wrapped);
+            int mode = sh.getFontMode();
+            switch (mode) {
+                case SettingsHelper.FONT_WP:
+                    overlayRes = R.style.AppFontOverlay_WP;
+                    break;
+                case SettingsHelper.FONT_SAMSUNG:
+                    overlayRes = R.style.AppFontOverlay_Samsung;
+                    break;
+                case SettingsHelper.FONT_SYSTEM:
+                default:
+                    overlayRes = 0;
+                    break;
+            }
+        } catch (Exception ignored) { }
+
+        // If overlay exists, apply it to the theme of the wrapped context before super.attachBaseContext
+        try {
+            if (overlayRes != 0 && wrapped instanceof android.view.ContextThemeWrapper) {
+                ((android.view.ContextThemeWrapper) wrapped).getTheme().applyStyle(overlayRes, true);
+            }
+        } catch (Exception ignored) { }
+
+        super.attachBaseContext(wrapped);
     }
 
     @Override
@@ -86,4 +115,4 @@ public class BaseActivity extends AppCompatActivity {
             }
         }
     }
-}
+                }
