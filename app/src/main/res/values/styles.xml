@@ -1,4 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- لا تعرف OneUITheme هنا — سيُستخدم الثيم الافتراضي من مكتبة oneui-design -->
+    <attr name="appFontFamily" format="reference" />
+
+    <style name="AppTextAppearance.Body" parent="TextAppearance.AppCompat.Body1">
+        <item name="android:fontFamily">?attr/appFontFamily</item>
+    </style>
+
+    <style name="AppTextAppearance.Title" parent="TextAppearance.AppCompat.Title">
+        <item name="android:fontFamily">?attr/appFontFamily</item>
+    </style>
+
+    <style name="AppFontOverlay_WP">
+        <item name="appFontFamily">@font/wp_rglr</item>
+    </style>
+
+    <style name="AppFontOverlay_SamsungOne">
+        <item name="appFontFamily">@font/samsung_one</item>
+    </style>
+
+    <style name="AppFontOverlay_Default">
+        <item name="appFontFamily">@font/wp_rglr</item>
+    </style>
 </resources>
