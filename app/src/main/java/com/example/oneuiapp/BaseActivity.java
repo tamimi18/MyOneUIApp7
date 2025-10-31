@@ -1,7 +1,6 @@
 package com.example.oneuiapp;
 
 import android.content.Context;
-import android.content.IntentFilter;
 import android.os.Build;
 import android.os.LocaleList;
 import android.text.TextUtils;
@@ -12,22 +11,11 @@ import androidx.appcompat.view.ContextThemeWrapper;
 
 /**
  * BaseActivity ensures the Activity context is wrapped with app settings (locale/theme)
- * and listens for font-change broadcasts to recreate itself.
+ * and applies font overlay early (before inflate) via ContextThemeWrapper.
  */
 public class BaseActivity extends AppCompatActivity {
 
     private static final String TAG = "BaseActivity";
-
-    private final android.content.BroadcastReceiver fontChangeReceiver = new android.content.BroadcastReceiver() {
-        @Override
-        public void onReceive(android.content.Context context, android.content.Intent intent) {
-            if (FontChangeBroadcaster.ACTION_FONT_CHANGED.equals(intent.getAction())) {
-                if (!isFinishing()) {
-                    runOnUiThread(() -> recreate());
-                }
-            }
-        }
-    };
 
     @Override
     protected void attachBaseContext(Context newBase) {
@@ -114,19 +102,6 @@ public class BaseActivity extends AppCompatActivity {
             getWindow().getDecorView().setLayoutDirection(dir == View.LAYOUT_DIRECTION_RTL ? View.LAYOUT_DIRECTION_RTL : View.LAYOUT_DIRECTION_LTR);
             forceRelayout(getWindow().getDecorView());
         }
-
-        try {
-            IntentFilter f = new IntentFilter(FontChangeBroadcaster.ACTION_FONT_CHANGED);
-            registerReceiver(fontChangeReceiver, f);
-        } catch (Exception ignored) { }
-    }
-
-    @Override
-    protected void onPause() {
-        try {
-            unregisterReceiver(fontChangeReceiver);
-        } catch (Exception ignored) { }
-        super.onPause();
     }
 
     // Force relayout and invalidate all children to ensure layoutDirection changes take effect
@@ -141,4 +116,4 @@ public class BaseActivity extends AppCompatActivity {
             }
         }
     }
-                             }
+}
