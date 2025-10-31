@@ -15,7 +15,7 @@ import java.util.List;
 
 /**
  * MyApplication: يحتفظ بقائمة الأنشطة ويعيد تطبيق الخط فوراً عبر تطبيق Typeface على Views.
- * تحسين: بعد recreate نُنفّذ تطبيق Typeface أيضاً بعد تأخير قصير للتعامل مع إعادة رسم الواجهات.
+ * تحسين: بعد recreate نُنفّذ تطبيق Typeface أيضاً بعد تأخيرين للتأكد من أن كل إعادة رسم تمت.
  */
 public class MyApplication extends Application {
 
@@ -77,7 +77,7 @@ public class MyApplication extends Application {
 
     /**
      * إعادة إنشاء كل الأنشطة المفتوحة وتطبيق Typeface مباشرة على Views لضمان تغيير فوري.
-     * بعد recreate نطبق أيضاً تطبيقاً متأخراً (150ms) للتأكد من أن أي عمليات إعادة رسم لاحقة قد انتهت.
+     * بعد recreate نطبق أيضاً تطبيقين متأخرين (150ms و 450ms) للتأكد من أن أي عمليات إعادة رسم لاحقة قد انتهت.
      */
     public void recreateAllActivities() {
         Typeface tf = SettingsHelper.getTypeface(this);
@@ -96,21 +96,31 @@ public class MyApplication extends Application {
                         // تطبيق فوري الآن أيضاً
                         try {
                             Typeface applyTf = SettingsHelper.getTypeface(act);
-                            // إذا applyTf == null فهذا يعني خط النظام -> مرّر null ليطبق DEFAULT داخل applyTypefaceToView
+                            // مرّر null لإعادة خط النظام الحقيقي إن لم يوجد tf
                             FontHelper.applyTypefaceToActivity(act, applyTf);
                         } catch (Exception e) {
                             Log.w(TAG, "Failed to apply typeface to activity views immediately for " + act.getClass().getName(), e);
                         }
 
-                        // تطبيق متأخر لضمان تغطية أي إعادة رسم لاحقة (150ms)
+                        // تطبيق متأخر 150ms
                         mainHandler.postDelayed(() -> {
                             try {
                                 Typeface delayedTf = SettingsHelper.getTypeface(act);
                                 FontHelper.applyTypefaceToActivity(act, delayedTf);
                             } catch (Exception e) {
-                                Log.w(TAG, "Failed to apply delayed typeface to activity views for " + act.getClass().getName(), e);
+                                Log.w(TAG, "Failed to apply delayed typeface (150ms) to activity views for " + act.getClass().getName(), e);
                             }
                         }, 150);
+
+                        // تطبيق متأخر ثاني 450ms لتغطية حالات إعادة رسم طويلة
+                        mainHandler.postDelayed(() -> {
+                            try {
+                                Typeface delayedTf2 = SettingsHelper.getTypeface(act);
+                                FontHelper.applyTypefaceToActivity(act, delayedTf2);
+                            } catch (Exception e) {
+                                Log.w(TAG, "Failed to apply delayed typeface (450ms) to activity views for " + act.getClass().getName(), e);
+                            }
+                        }, 450);
                     });
                 } catch (Exception e) {
                     Log.w(TAG, "Failed scheduling recreate for activity", e);
