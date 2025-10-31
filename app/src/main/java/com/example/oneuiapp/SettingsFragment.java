@@ -127,19 +127,25 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Prefer
             SettingsHelper sh = new SettingsHelper(mContext);
 
             /*
-             * نستخدم setFontMode الذي يكتب بالقيمة باستخدام commit لضمان أنها قد كُتبت
-             * قبل استدعاء FontHelper.applyFont ثم إعادة إنشاء الأنشطة.
+             * setFontMode يستخدم commit لضمان التزامن.
              */
             sh.setFontMode(mode);
 
             try {
-                // تطبيق الخط على مستوى Typeface (FontHelper يقرأ الآن من DefaultSharedPreferences)
+                // تطبيق الخط على مستوى Typeface
                 FontHelper.applyFont(mContext.getApplicationContext());
             } catch (Exception e) {
                 android.util.Log.e("SettingsFragment", "FontHelper.applyFont failed", e);
             }
 
-            // إعادة إنشاء كل الأنشطة لتطبيق التغيير عبر الواجهات
+            // بعث بث لتحديث أي Activities تستمع (BaseActivity يستمع لبث ACTION_FONT_CHANGED ويعيد create)
+            try {
+                FontChangeBroadcaster.sendFontChangeBroadcast(mContext.getApplicationContext());
+            } catch (Exception e) {
+                android.util.Log.w("SettingsFragment", "Failed to send font change broadcast", e);
+            }
+
+            // إعادة إنشاء كل الأنشطة لتطبيق التغيير عبر الواجهات (تُنادى على UI thread من MyApplication)
             MyApplication app = MyApplication.getInstance();
             if (app != null) {
                 app.recreateAllActivities();
@@ -175,4 +181,4 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Prefer
 
         return true;
     }
-}
+                }
