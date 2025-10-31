@@ -5,6 +5,8 @@ import android.app.Application;
 import android.content.Context;
 import android.graphics.Typeface;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 
 import java.lang.ref.WeakReference;
@@ -13,6 +15,7 @@ import java.util.List;
 
 /**
  * MyApplication: يحتفظ بقائمة الأنشطة ويعيد تطبيق الخط فوراً عبر تطبيق Typeface على Views.
+ * تحسين: بعد recreate نُنفّذ تطبيق Typeface أيضاً بعد تأخير قصير للتعامل مع إعادة رسم الواجهات.
  */
 public class MyApplication extends Application {
 
@@ -20,6 +23,8 @@ public class MyApplication extends Application {
     private static MyApplication sInstance;
 
     private static final List<WeakReference<Activity>> activities = new ArrayList<>();
+
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
     @Override
     protected void attachBaseContext(Context base) {
@@ -72,36 +77,40 @@ public class MyApplication extends Application {
 
     /**
      * إعادة إنشاء كل الأنشطة المفتوحة وتطبيق Typeface مباشرة على Views لضمان تغيير فوري.
+     * بعد recreate نطبق أيضاً تطبيقاً متأخراً (150ms) للتأكد من أن أي عمليات إعادة رسم لاحقة قد انتهت.
      */
     public void recreateAllActivities() {
-        // تأمين الحصول على Typeface من الإعدادات (قد يرجع null إذا النظام)
         Typeface tf = SettingsHelper.getTypeface(this);
 
         for (WeakReference<Activity> ref : activities) {
             Activity act = ref.get();
             if (act != null && !act.isFinishing()) {
                 try {
-                    // نفّذ داخل UI thread الخاص بالنشاط
                     act.runOnUiThread(() -> {
                         try {
-                            // حاول إعادة الإنشاء أولاً
                             act.recreate();
                         } catch (Exception e) {
                             Log.w(TAG, "Activity.recreate failed for " + act.getClass().getName(), e);
                         }
 
-                        // ثم مباشرة بعد ذلك طبق الـ Typeface يدوياً على شجرة العرض لكي يحدث التغيير فوراً
+                        // تطبيق فوري الآن أيضاً
                         try {
                             Typeface applyTf = SettingsHelper.getTypeface(act);
-                            if (applyTf != null) {
-                                FontHelper.applyTypefaceToActivity(act, applyTf);
-                            } else {
-                                // إذا لم يكن هناك typeface مخصص (System)، طبق reset: نستخدم default system typeface
-                                FontHelper.applyTypefaceToActivity(act, Typeface.create(Typeface.DEFAULT, Typeface.NORMAL));
-                            }
+                            // إذا applyTf == null فهذا يعني خط النظام -> مرّر null ليطبق DEFAULT داخل applyTypefaceToView
+                            FontHelper.applyTypefaceToActivity(act, applyTf);
                         } catch (Exception e) {
-                            Log.w(TAG, "Failed to apply typeface to activity views for " + act.getClass().getName(), e);
+                            Log.w(TAG, "Failed to apply typeface to activity views immediately for " + act.getClass().getName(), e);
                         }
+
+                        // تطبيق متأخر لضمان تغطية أي إعادة رسم لاحقة (150ms)
+                        mainHandler.postDelayed(() -> {
+                            try {
+                                Typeface delayedTf = SettingsHelper.getTypeface(act);
+                                FontHelper.applyTypefaceToActivity(act, delayedTf);
+                            } catch (Exception e) {
+                                Log.w(TAG, "Failed to apply delayed typeface to activity views for " + act.getClass().getName(), e);
+                            }
+                        }, 150);
                     });
                 } catch (Exception e) {
                     Log.w(TAG, "Failed scheduling recreate for activity", e);
