@@ -50,7 +50,11 @@ public class MyApplication extends Application {
             public void onActivityCreated(Activity activity, Bundle savedInstanceState) {
                 activities.add(new WeakReference<>(activity));
                 // تطبيق الخط مباشرة عند إنشاء أي Activity
-                FontHelper.applyFont(activity);
+                try {
+                    FontHelper.applyFont(activity);
+                } catch (Exception e) {
+                    Log.w(TAG, "FontHelper.applyFont on activityCreated failed", e);
+                }
             }
 
             @Override public void onActivityStarted(Activity activity) {}
@@ -68,12 +72,24 @@ public class MyApplication extends Application {
 
     /**
      * إعادة إنشاء كل الأنشطة المفتوحة لتطبيق الخط الجديد
+     * الآن يتم استدعاء recreate() على كل Activity داخل الـ UI thread لضمان إعادة بناء الواجهات فوراً.
      */
     public void recreateAllActivities() {
         for (WeakReference<Activity> ref : activities) {
             Activity act = ref.get();
             if (act != null && !act.isFinishing()) {
-                act.recreate();
+                try {
+                    // نفذ recreate داخل UI thread الخاص بالنشاط
+                    act.runOnUiThread(() -> {
+                        try {
+                            act.recreate();
+                        } catch (Exception e) {
+                            Log.w(TAG, "Activity.recreate failed for " + act.getClass().getName(), e);
+                        }
+                    });
+                } catch (Exception e) {
+                    Log.w(TAG, "Failed scheduling recreate for activity", e);
+                }
             }
         }
     }
