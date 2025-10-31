@@ -80,7 +80,7 @@ public class MyApplication extends Application {
             SettingsHelper sh = new SettingsHelper(this);
             int mode = sh.getFontMode();
             switch (mode) {
-                case SettingsHelper.FONT_WF:
+                case SettingsHelper.FONT_WP:
                     return R.style.AppFontOverlay_WP;
                 case SettingsHelper.FONT_SAMSUNG:
                     return R.style.AppFontOverlay_SamsungOne;
