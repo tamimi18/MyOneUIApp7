@@ -10,15 +10,13 @@
         <item name="android:fontFamily">?attr/appFontFamily</item>
     </style>
 
+    <!-- Overlay: WP -->
     <style name="AppFontOverlay_WP">
         <item name="appFontFamily">@font/wp_rglr</item>
     </style>
 
+    <!-- Overlay: Samsung One -->
     <style name="AppFontOverlay_SamsungOne">
         <item name="appFontFamily">@font/samsung_one</item>
-    </style>
-
-    <style name="AppFontOverlay_Default">
-        <item name="appFontFamily">@font/wp_rglr</item>
     </style>
 </resources>
