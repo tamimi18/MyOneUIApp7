@@ -16,7 +16,7 @@
     </style>
 
     <!-- Overlay: Samsung One -->
-    <style name="AppFontOverlay_SamsungOne">
+    <style name="AppFontOverlay_Samsung">
         <item name="appFontFamily">@font/samsung_one</item>
     </style>
 </resources>
