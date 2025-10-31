@@ -7,56 +7,46 @@ import android.util.Log;
 import java.lang.reflect.Field;
 
 /**
- * FontHelper (مبسَّط) - تغيير آمن لحقول Typeface أو إعادة ضبطها إلى قيم النظام.
- *
- * هذا الكلاس لا يحاول تعديل Views مباشرة. تطبيق التغيير الفعلي للواجهة يتم عبر recreate() على
- * الأنشطة (الطريقة الرسمية الموصى بها من Android Developers).
+ * FontHelper النهائي:
+ * - يطبّق الخط المختار من SettingsHelper على مستوى النظام.
+ * - إذا كان الخط = System Font يرجّع القيم الافتراضية.
+ * - يستخدم Reflection لتغيير الحقول الثابتة في Typeface.
  */
 public class FontHelper {
 
     private static final String TAG = "FontHelper";
 
-    /**
-     * يطبّق اختيار الخط العام. إذا كانت getTypeface ترجع null فهذا يعني System.
-     * لا يقوم هذا الكود بمحاولات لإعادة رسم Views؛ ذلك يتم عبر recreate في MyApplication.
-     */
     public static void applyFont(Context context) {
-        if (context == null) return;
-        try {
-            Typeface chosen = SettingsHelper.getTypeface(context); // null => System
-            if (chosen == null) {
-                resetToSystemFonts();
-            } else {
-                // استبدال الحقول الأساسية بخط مخصص
-                replaceTypefaceField("DEFAULT", chosen);
-                replaceTypefaceField("DEFAULT_BOLD", Typeface.create(chosen, Typeface.BOLD));
-                replaceTypefaceField("SANS_SERIF", chosen);
-                replaceTypefaceField("SERIF", chosen);
-                replaceTypefaceField("MONOSPACE", chosen);
-            }
-            Log.i(TAG, "applyFont completed. custom=" + (SettingsHelper.getTypeface(context) != null));
-        } catch (Exception e) {
-            Log.w(TAG, "applyFont failed: " + e.getMessage(), e);
+        Typeface custom = SettingsHelper.getTypeface(context);
+
+        if (custom == null) {
+            // ✅ رجوع للخط الافتراضي للنظام
             resetToSystemFonts();
+            return;
         }
-    }
 
-    private static boolean replaceTypefaceField(String fieldName, Typeface newTf) {
         try {
-            Field f = Typeface.class.getDeclaredField(fieldName);
-            f.setAccessible(true);
-            f.set(null, newTf);
-            return true;
+            replaceTypefaceField("DEFAULT", custom);
+            replaceTypefaceField("DEFAULT_BOLD", Typeface.create(custom, Typeface.BOLD));
+            replaceTypefaceField("SANS_SERIF", custom);
+            replaceTypefaceField("SERIF", custom);
+            replaceTypefaceField("MONOSPACE", custom);
         } catch (Exception e) {
-            Log.w(TAG, "replaceTypefaceField failed for " + fieldName + ": " + e.getMessage());
-            return false;
+            Log.e(TAG, "applyFont failed", e);
         }
     }
 
-    /**
-     * إعادة الحقول المعروفة إلى قيمها الافتراضية الآمنة.
-     */
-    public static void resetToSystemFonts() {
+    private static void replaceTypefaceField(String fieldName, Typeface newTf) {
+        try {
+            Field field = Typeface.class.getDeclaredField(fieldName);
+            field.setAccessible(true);
+            field.set(null, newTf);
+        } catch (Exception e) {
+            Log.w(TAG, "replaceTypefaceField failed for " + fieldName, e);
+        }
+    }
+
+    private static void resetToSystemFonts() {
         try {
             Typeface def = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL);
             Typeface defBold = Typeface.create(Typeface.DEFAULT, Typeface.BOLD);
@@ -69,10 +59,8 @@ public class FontHelper {
             replaceTypefaceField("SANS_SERIF", sans);
             replaceTypefaceField("SERIF", serif);
             replaceTypefaceField("MONOSPACE", mono);
-
-            Log.i(TAG, "resetToSystemFonts: done");
         } catch (Exception e) {
-            Log.w(TAG, "resetToSystemFonts failed: " + e.getMessage(), e);
+            Log.e(TAG, "resetToSystemFonts failed", e);
         }
     }
 }
