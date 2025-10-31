@@ -97,7 +97,7 @@ public class SettingsHelper {
         int mode = sh.getFontMode();
         try {
             switch (mode) {
-                case FONT_WF:
+                case FONT_WP:
                     return ResourcesCompat.getFont(ctx, R.font.wp_rglr);
                 case FONT_SAMSUNG:
                     return ResourcesCompat.getFont(ctx, R.font.samsung_one);
