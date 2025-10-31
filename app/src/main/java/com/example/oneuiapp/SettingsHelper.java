@@ -34,7 +34,7 @@ public class SettingsHelper {
     public static final int THEME_DARK = 2;
 
     public static final int FONT_SYSTEM = 0;
-    public static final int FONT_WF = 1;
+    public static final int FONT_WP = 1;
     public static final int FONT_SAMSUNG = 2;
 
     public SettingsHelper(Context context) {
