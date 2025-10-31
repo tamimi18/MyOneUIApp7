@@ -4,14 +4,10 @@ import android.content.Context;
 import android.graphics.Typeface;
 import android.util.Log;
 
+import androidx.core.content.res.ResourcesCompat;
+
 import java.lang.reflect.Field;
 
-/**
- * FontHelper النهائي:
- * - يطبّق الخط المختار من SettingsHelper على مستوى النظام.
- * - إذا كان الخط = System Font يرجّع القيم الافتراضية.
- * - يستخدم Reflection لتغيير الحقول الثابتة في Typeface.
- */
 public class FontHelper {
 
     private static final String TAG = "FontHelper";
@@ -20,7 +16,6 @@ public class FontHelper {
         Typeface custom = SettingsHelper.getTypeface(context);
 
         if (custom == null) {
-            // ✅ رجوع للخط الافتراضي للنظام
             resetToSystemFonts();
             return;
         }
@@ -41,6 +36,10 @@ public class FontHelper {
             Field field = Typeface.class.getDeclaredField(fieldName);
             field.setAccessible(true);
             field.set(null, newTf);
+        } catch (NoSuchFieldException nsf) {
+            Log.w(TAG, "NoSuchFieldException for " + fieldName);
+        } catch (IllegalAccessException ia) {
+            Log.w(TAG, "IllegalAccessException for " + fieldName, ia);
         } catch (Exception e) {
             Log.w(TAG, "replaceTypefaceField failed for " + fieldName, e);
         }
