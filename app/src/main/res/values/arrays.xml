@@ -85,7 +85,7 @@
     <!-- النصوص المعروضة للمستخدم -->
     <string-array name="settings_font_entries">
         <item>@string/settings_font_system</item>
-        <item>@string/settings_font_wf_regular</item>
+        <item>@string/settings_font_wp_rglr</item>
         <item>@string/settings_font_samsung_one</item>
     </string-array>
     
