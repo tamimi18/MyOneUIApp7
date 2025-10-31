@@ -21,8 +21,8 @@ import dev.oneuiproject.oneui.layout.DrawerLayout;
 import androidx.appcompat.app.AlertDialog;
 
 /**
- * MainActivity - النسخة المحدثة مع زر عرض معلومات الخط (font metadata)
- * تحكم بالرؤية بحيث تظهر أيقونة المعلومات فقط عند عرض FontViewerFragment (index 2)
+ * MainActivity - النّسخة المعدّلة مع زر عرض معلومات خطوط (font metadata)
+ * تَحْكُم بالرّؤية بناءً على ظهور FontViewerFragment (index 2)
  */
 public class MainActivity extends BaseActivity implements FontViewerFragment.OnFontChangedListener {
 
@@ -81,12 +81,12 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
         try {
             if (mDrawerLayout != null && mDrawerLayout.getToolbar() != null) {
                 mDrawerLayout.getToolbar().inflateMenu(R.menu.menu_main_font_meta);
-                // حفظ مرجع عنصر القائمة من الـ Menu في الـ Toolbar
+                // الحصول على مرجع عنصر القائمة من الـ Menu في الـ Toolbar
                 Menu menu = mDrawerLayout.getToolbar().getMenu();
                 if (menu != null) {
                     mFontMetaMenuItem = menu.findItem(R.id.action_font_meta);
                     if (mFontMetaMenuItem != null) {
-                        // اجعله مخفياً افتراضياً؛ سنظهره عندما نعرض FontViewerFragment
+                        // اجعل مرجعًا افتراضيًا قابلًا للتبديل: سنعرضه عندما نعرض FontViewerFragment
                         mFontMetaMenuItem.setVisible(false);
                     }
                 }
@@ -173,7 +173,7 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
 
         transaction.commitNow();
 
-        // تحديث رؤية أيقونة معلومات الخط بعد تبديل الفِراغمنت
+        // تحديث رؤية عنصر قائمة ميتاداتا الخط بعد تبديل fragment
         try {
             if (mFontMetaMenuItem != null) {
                 mFontMetaMenuItem.setVisible(position == 2);
@@ -223,7 +223,7 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
         mDrawerLayout.setTitle(title);
         mDrawerLayout.setExpandedSubtitle(subtitle);
 
-        // تأكد من أن أيقونة المعلومات مرئية فقط عند شاشة Font Viewer (index 2)
+        // تأكد من أن عنصر قائمة ميتاداتا مرئي فقط عند عرض Font Viewer (index 2)
         try {
             if (mFontMetaMenuItem != null) {
                 mFontMetaMenuItem.setVisible(fragmentIndex == 2);
@@ -319,4 +319,4 @@ public class MainActivity extends BaseActivity implements FontViewerFragment.OnF
             updateDrawerTitle(position);
         }
     }
-                        }
+}
