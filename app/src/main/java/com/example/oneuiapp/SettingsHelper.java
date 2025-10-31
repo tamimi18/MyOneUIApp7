@@ -10,12 +10,15 @@ import android.os.Build;
 
 import androidx.appcompat.app.AppCompatDelegate;
 import androidx.core.content.res.ResourcesCompat;
+import androidx.preference.PreferenceManager;
 
 import java.util.Locale;
 
 public class SettingsHelper {
 
-    private static final String PREFSNAME = "com.example.oneuiapppreferences";
+    // SharedPreferences موحّدة: DefaultSharedPreferences لتتوافق مع PreferenceFragmentCompat
+    private final SharedPreferences prefs;
+    private final Context context;
 
     private static final String KEYLANGUAGEMODE = "language_mode";
     private static final String KEYTHEMEMODE = "theme_mode";
@@ -35,12 +38,10 @@ public class SettingsHelper {
     public static final int FONT_WF = 1;
     public static final int FONT_SAMSUNG = 2;
 
-    private final SharedPreferences prefs;
-    private final Context context;
-
     public SettingsHelper(Context context) {
         this.context = context.getApplicationContext();
-        this.prefs = this.context.getSharedPreferences(PREFSNAME, Context.MODE_PRIVATE);
+        // التغيير الخفيف: استخدام DefaultSharedPreferences بدلاً من SharedPreferences خاصة
+        this.prefs = PreferenceManager.getDefaultSharedPreferences(this.context);
     }
 
     // ---------------- Language ----------------
@@ -114,7 +115,6 @@ public class SettingsHelper {
 
     // ---------------- Preview text ----------------
     private String getPreviewTextInternal() {
-        // ✅ الآن يستدعي resource الصحيح
         String def = context.getString(R.string.settings_preview_text_default);
         return prefs.getString(KEYPREVIEWTEXT, def);
     }
@@ -139,7 +139,7 @@ public class SettingsHelper {
 
     // ---------------- Locale helpers ----------------
     public static Locale getLocale(Context ctx) {
-        SharedPreferences p = ctx.getSharedPreferences(PREFSNAME, Context.MODE_PRIVATE);
+        SharedPreferences p = PreferenceManager.getDefaultSharedPreferences(ctx);
         String modeStr = p.getString(KEYLANGUAGEMODE, String.valueOf(LANGUAGE_SYSTEM));
         int mode;
         try { mode = Integer.parseInt(modeStr); } catch (Exception e) { mode = LANGUAGE_SYSTEM; }
@@ -159,7 +159,7 @@ public class SettingsHelper {
 
     @SuppressWarnings("deprecation")
     public static Context wrapContext(Context context) {
-        SharedPreferences p = context.getSharedPreferences(PREFSNAME, Context.MODE_PRIVATE);
+        SharedPreferences p = PreferenceManager.getDefaultSharedPreferences(context);
         String modeStr = p.getString(KEYLANGUAGEMODE, String.valueOf(LANGUAGE_SYSTEM));
         int mode;
         try { mode = Integer.parseInt(modeStr); } catch (Exception e) { mode = LANGUAGE_SYSTEM; }
@@ -194,4 +194,4 @@ public class SettingsHelper {
         SettingsHelper helper = new SettingsHelper(context);
         helper.applyTheme();
     }
-    }
+                    }
