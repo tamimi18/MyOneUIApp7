@@ -16,7 +16,6 @@ import java.util.Locale;
 
 public class SettingsHelper {
 
-    // SharedPreferences موحّدة: DefaultSharedPreferences لتتوافق مع PreferenceFragmentCompat
     private final SharedPreferences prefs;
     private final Context context;
 
@@ -40,11 +39,10 @@ public class SettingsHelper {
 
     public SettingsHelper(Context context) {
         this.context = context.getApplicationContext();
-        // التغيير الخفيف: استخدام DefaultSharedPreferences بدلاً من SharedPreferences خاصة
         this.prefs = PreferenceManager.getDefaultSharedPreferences(this.context);
     }
 
-    // ---------------- Language ----------------
+    // Language
     public int getLanguageMode() {
         String v = prefs.getString(KEYLANGUAGEMODE, String.valueOf(LANGUAGE_SYSTEM));
         try { return Integer.parseInt(v); } catch (Exception e) { return LANGUAGE_SYSTEM; }
@@ -58,7 +56,7 @@ public class SettingsHelper {
         activity.recreate();
     }
 
-    // ---------------- Theme ----------------
+    // Theme
     public int getThemeMode() {
         String v = prefs.getString(KEYTHEMEMODE, String.valueOf(THEME_SYSTEM));
         try { return Integer.parseInt(v); } catch (Exception e) { return THEME_SYSTEM; }
@@ -84,7 +82,7 @@ public class SettingsHelper {
         }
     }
 
-    // ---------------- Font ----------------
+    // Font
     public int getFontMode() {
         String v = prefs.getString(KEYFONTMODE, String.valueOf(FONT_SYSTEM));
         try { return Integer.parseInt(v); } catch (Exception e) { return FONT_SYSTEM; }
@@ -100,7 +98,7 @@ public class SettingsHelper {
         try {
             switch (mode) {
                 case FONT_WF:
-                    return ResourcesCompat.getFont(ctx, R.font.wf_rglr);
+                    return ResourcesCompat.getFont(ctx, R.font.wp_rglr);
                 case FONT_SAMSUNG:
                     return ResourcesCompat.getFont(ctx, R.font.samsung_one);
                 case FONT_SYSTEM:
@@ -113,7 +111,7 @@ public class SettingsHelper {
         }
     }
 
-    // ---------------- Preview text ----------------
+    // Preview text
     private String getPreviewTextInternal() {
         String def = context.getString(R.string.settings_preview_text_default);
         return prefs.getString(KEYPREVIEWTEXT, def);
@@ -128,7 +126,7 @@ public class SettingsHelper {
         prefs.edit().putString(KEYPREVIEWTEXT, text == null ? "" : text).apply();
     }
 
-    // ---------------- Notifications ----------------
+    // Notifications
     public boolean areNotificationsEnabled() {
         return prefs.getBoolean(KEYNOTIFICATIONSENABLED, true);
     }
@@ -137,7 +135,7 @@ public class SettingsHelper {
         prefs.edit().putBoolean(KEYNOTIFICATIONSENABLED, enabled).apply();
     }
 
-    // ---------------- Locale helpers ----------------
+    // Locale helpers
     public static Locale getLocale(Context ctx) {
         SharedPreferences p = PreferenceManager.getDefaultSharedPreferences(ctx);
         String modeStr = p.getString(KEYLANGUAGEMODE, String.valueOf(LANGUAGE_SYSTEM));
@@ -194,4 +192,4 @@ public class SettingsHelper {
         SettingsHelper helper = new SettingsHelper(context);
         helper.applyTheme();
     }
-                    }
+            }
