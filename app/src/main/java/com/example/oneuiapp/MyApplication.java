@@ -3,6 +3,7 @@ package com.example.oneuiapp;
 import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
+import android.graphics.Typeface;
 import android.os.Bundle;
 import android.util.Log;
 
@@ -73,13 +74,14 @@ public class MyApplication extends Application {
      * إعادة إنشاء كل الأنشطة المفتوحة وتطبيق Typeface مباشرة على Views لضمان تغيير فوري.
      */
     public void recreateAllActivities() {
+        // تأمين الحصول على Typeface من الإعدادات (قد يرجع null إذا النظام)
         Typeface tf = SettingsHelper.getTypeface(this);
 
         for (WeakReference<Activity> ref : activities) {
             Activity act = ref.get();
             if (act != null && !act.isFinishing()) {
                 try {
-                    // أولاً: جدول إعادة الإنشاء داخل UI thread الخاص بالنشاط
+                    // نفّذ داخل UI thread الخاص بالنشاط
                     act.runOnUiThread(() -> {
                         try {
                             // حاول إعادة الإنشاء أولاً
@@ -88,7 +90,7 @@ public class MyApplication extends Application {
                             Log.w(TAG, "Activity.recreate failed for " + act.getClass().getName(), e);
                         }
 
-                        // ثم مباشرة بعد ذلك، طبق الـ Typeface يدوياً على شجرة العرض لكي يحدث التغيير فوراً
+                        // ثم مباشرة بعد ذلك طبق الـ Typeface يدوياً على شجرة العرض لكي يحدث التغيير فوراً
                         try {
                             Typeface applyTf = SettingsHelper.getTypeface(act);
                             if (applyTf != null) {
@@ -107,4 +109,4 @@ public class MyApplication extends Application {
             }
         }
     }
-                                                                   }
+}
