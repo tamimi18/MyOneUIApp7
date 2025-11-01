@@ -7,18 +7,16 @@ import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.graphics.Typeface;
 import android.os.Build;
-
 import androidx.appcompat.app.AppCompatDelegate;
 import androidx.core.content.res.ResourcesCompat;
+// ★★★ جديد: استيراد مدير التفضيلات الافتراضي ★★★
 import androidx.preference.PreferenceManager;
 
 import java.util.Locale;
 
 public class SettingsHelper {
 
-    private final SharedPreferences prefs;
-    private final Context context;
-
+    // private static final String PREFSNAME = "com.example.oneuiapppreferences"; // ★★★ محذوف ★★★
     private static final String KEYLANGUAGEMODE = "language_mode";
     private static final String KEYTHEMEMODE = "theme_mode";
     private static final String KEYFONTMODE = "font_mode";
@@ -28,21 +26,24 @@ public class SettingsHelper {
     public static final int LANGUAGE_SYSTEM = 0;
     public static final int LANGUAGE_ARABIC = 1;
     public static final int LANGUAGE_ENGLISH = 2;
-
     public static final int THEME_SYSTEM = 0;
     public static final int THEME_LIGHT = 1;
     public static final int THEME_DARK = 2;
 
     public static final int FONT_SYSTEM = 0;
-    public static final int FONT_WP = 1;
+    public static final int FONT_WF = 1;
     public static final int FONT_SAMSUNG = 2;
+
+    private final SharedPreferences prefs;
+    private final Context context;
 
     public SettingsHelper(Context context) {
         this.context = context.getApplicationContext();
+        // ★★★ معدل: استخدام مدير التفضيلات الافتراضي ★★★
         this.prefs = PreferenceManager.getDefaultSharedPreferences(this.context);
     }
 
-    // Language
+    // ---------------- Language ----------------
     public int getLanguageMode() {
         String v = prefs.getString(KEYLANGUAGEMODE, String.valueOf(LANGUAGE_SYSTEM));
         try { return Integer.parseInt(v); } catch (Exception e) { return LANGUAGE_SYSTEM; }
@@ -56,7 +57,7 @@ public class SettingsHelper {
         activity.recreate();
     }
 
-    // Theme
+    // ---------------- Theme ----------------
     public int getThemeMode() {
         String v = prefs.getString(KEYTHEMEMODE, String.valueOf(THEME_SYSTEM));
         try { return Integer.parseInt(v); } catch (Exception e) { return THEME_SYSTEM; }
@@ -82,7 +83,7 @@ public class SettingsHelper {
         }
     }
 
-    // Font
+    // ---------------- Font ----------------
     public int getFontMode() {
         String v = prefs.getString(KEYFONTMODE, String.valueOf(FONT_SYSTEM));
         try { return Integer.parseInt(v); } catch (Exception e) { return FONT_SYSTEM; }
@@ -97,8 +98,8 @@ public class SettingsHelper {
         int mode = sh.getFontMode();
         try {
             switch (mode) {
-                case FONT_WP:
-                    return ResourcesCompat.getFont(ctx, R.font.wp_rglr);
+                case FONT_WF:
+                    return ResourcesCompat.getFont(ctx, R.font.wf_rglr);
                 case FONT_SAMSUNG:
                     return ResourcesCompat.getFont(ctx, R.font.samsung_one);
                 case FONT_SYSTEM:
@@ -111,8 +112,9 @@ public class SettingsHelper {
         }
     }
 
-    // Preview text
+    // ---------------- Preview text ----------------
     private String getPreviewTextInternal() {
+        // ✅ الآن يستدعي resource الصحيح
         String def = context.getString(R.string.settings_preview_text_default);
         return prefs.getString(KEYPREVIEWTEXT, def);
     }
@@ -126,7 +128,7 @@ public class SettingsHelper {
         prefs.edit().putString(KEYPREVIEWTEXT, text == null ? "" : text).apply();
     }
 
-    // Notifications
+    // ---------------- Notifications ----------------
     public boolean areNotificationsEnabled() {
         return prefs.getBoolean(KEYNOTIFICATIONSENABLED, true);
     }
@@ -135,8 +137,9 @@ public class SettingsHelper {
         prefs.edit().putBoolean(KEYNOTIFICATIONSENABLED, enabled).apply();
     }
 
-    // Locale helpers
+    // ---------------- Locale helpers ----------------
     public static Locale getLocale(Context ctx) {
+        // ★★★ معدل: استخدام مدير التفضيلات الافتراضي ★★★
         SharedPreferences p = PreferenceManager.getDefaultSharedPreferences(ctx);
         String modeStr = p.getString(KEYLANGUAGEMODE, String.valueOf(LANGUAGE_SYSTEM));
         int mode;
@@ -157,6 +160,7 @@ public class SettingsHelper {
 
     @SuppressWarnings("deprecation")
     public static Context wrapContext(Context context) {
+        // ★★★ معدل: استخدام مدير التفضيلات الافتراضي ★★★
         SharedPreferences p = PreferenceManager.getDefaultSharedPreferences(context);
         String modeStr = p.getString(KEYLANGUAGEMODE, String.valueOf(LANGUAGE_SYSTEM));
         int mode;
@@ -164,7 +168,8 @@ public class SettingsHelper {
 
         Locale locale;
         switch (mode) {
-            case LANGUAGE_ARABIC: locale = new Locale("ar"); break;
+            case LANGUAGE_ARABIC: locale = new Locale("ar");
+                break;
             case LANGUAGE_ENGLISH: locale = new Locale("en"); break;
             case LANGUAGE_SYSTEM:
             default:
@@ -179,7 +184,6 @@ public class SettingsHelper {
         Locale.setDefault(locale);
         Configuration config = new Configuration(context.getResources().getConfiguration());
         config.setLocale(locale);
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             return context.createConfigurationContext(config);
         } else {
@@ -192,4 +196,4 @@ public class SettingsHelper {
         SettingsHelper helper = new SettingsHelper(context);
         helper.applyTheme();
     }
-            }
+}
