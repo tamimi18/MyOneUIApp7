@@ -1,116 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools">
-
-    <!-- attribute to drive app-wide font selection -->
-    <attr name="appFontFamily" format="reference" />
-
-    <!-- Main app theme (set this in AndroidManifest: android:theme="@style/AppTheme") -->
+<resources>
     <style name="AppTheme" parent="OneUITheme">
-        <!-- global fallback that reads the attribute -->
-        <item name="android:fontFamily">?attr/appFontFamily</item>
-
-        <!-- toolbar / appbar -->
-        <item name="toolbarStyle">@style/ToolbarStyle</item>
-
-        <!-- CollapsingToolbar appearances -->
-        <item name="collapsedTitleTextAppearance">@style/CollapsingToolbar.Collapsed</item>
-        <item name="expandedTitleTextAppearance">@style/CollapsingToolbar.Expanded</item>
-
-        <!-- navigation view -->
-        <item name="navigationViewStyle">@style/NavigationView.Style</item>
-
-        <!-- dialogs -->
-        <item name="alertDialogTheme">@style/AppAlertDialogTheme</item>
-
-        <!-- keep OneUI behavior -->
-        <item name="android:windowContentTransitions">true</item>
+        <item name="android:fontFamily">@font/wf_rglr</item>
     </style>
 
-    <!-- Toolbar -->
-    <style name="ToolbarStyle" parent="@style/Widget.AppCompat.Toolbar">
-        <item name="titleTextAppearance">@style/Toolbar.Title</item>
-        <item name="subtitleTextAppearance">@style/Toolbar.Subtitle</item>
+    <style name="AppTheme.Font.System" parent="AppTheme">
+        <item name="android:fontFamily">sans-serif</item> </style>
+
+    <style name="AppTheme.Font.WF" parent="AppTheme">
+        <item name="android:fontFamily">@font/wf_rglr</item>
     </style>
 
-    <style name="Toolbar.Title" parent="@style/TextAppearance.Widget.AppCompat.Toolbar.Title">
-        <item name="android:fontFamily">?attr/appFontFamily</item>
+    <style name="AppTheme.Font.Samsung" parent="AppTheme">
+        <item name="android:fontFamily">@font/samsung_one</item>
     </style>
-
-    <style name="Toolbar.Subtitle" parent="@style/TextAppearance.Widget.AppCompat.Toolbar.Subtitle">
-        <item name="android:fontFamily">?attr/appFontFamily</item>
-    </style>
-
-    <!-- CollapsingToolbar text appearances -->
-    <style name="CollapsingToolbar.Collapsed" parent="@style/TextAppearance.AppCompat.Title">
-        <item name="android:fontFamily">?attr/appFontFamily</item>
-        <item name="android:textSize">18sp</item>
-    </style>
-
-    <style name="CollapsingToolbar.Expanded" parent="@style/TextAppearance.AppCompat.Title">
-        <item name="android:fontFamily">?attr/appFontFamily</item>
-        <item name="android:textSize">20sp</item>
-    </style>
-
-    <!-- NavigationView (menu items) -->
-    <style name="NavigationView.Item" parent="@style/TextAppearance.AppCompat.Body1">
-        <item name="android:fontFamily">?attr/appFontFamily</item>
-        <item name="android:textSize">14sp</item>
-    </style>
-
-    <!-- NavigationView style WITHOUT external color reference -->
-    <style name="NavigationView.Style" parent="@style/Widget.Design.NavigationView">
-        <item name="itemTextAppearance">@style/NavigationView.Item</item>
-        <!-- removed itemIconTint reference to avoid missing resource -->
-    </style>
-
-    <!-- Navigation header title/subtitle -->
-    <style name="NavHeader.Title" parent="@style/TextAppearance.AppCompat.Title">
-        <item name="android:fontFamily">?attr/appFontFamily</item>
-        <item name="android:textSize">18sp</item>
-    </style>
-    <style name="NavHeader.Subtitle" parent="@style/TextAppearance.AppCompat.Body2">
-        <item name="android:fontFamily">?attr/appFontFamily</item>
-        <item name="android:textSize">13sp</item>
-    </style>
-
-    <!-- AlertDialog / Material dialogs -->
-    <style name="AppAlertDialogTheme" parent="@style/ThemeOverlay.AppCompat.Dialog.Alert">
-        <item name="alertDialogTheme">@style/AppAlertDialogTheme.Inner</item>
-    </style>
-    <style name="AppAlertDialogTheme.Inner" parent="@style/ThemeOverlay.AppCompat.Dialog.Alert">
-        <item name="android:fontFamily">?attr/appFontFamily</item>
-        <item name="android:alertDialogStyle">@style/AppAlertDialogStyle</item>
-    </style>
-    <style name="AppAlertDialogStyle" parent="@style/Theme.AppCompat.Light.Dialog.Alert">
-        <item name="android:fontFamily">?attr/appFontFamily</item>
-        <item name="android:dialogPreferredPadding">16dp</item>
-    </style>
-
-    <!-- Text appearances used across app -->
-    <style name="AppText.Body" parent="@style/TextAppearance.AppCompat.Body1">
-        <item name="android:fontFamily">?attr/appFontFamily</item>
-    </style>
-    <style name="AppText.Title" parent="@style/TextAppearance.AppCompat.Title">
-        <item name="android:fontFamily">?attr/appFontFamily</item>
-    </style>
-
-    <!-- Overlays (choose one to apply or reference in your overlays files)
-         Use existing fonts in your res/font (e.g., wp_rglr, samsung_one). -->
-    <style name="AppFontOverlay_WP" tools:ignore="MissingParent">
-        <item name="appFontFamily">@font/wp_rglr</item>
-    </style>
-
-    <style name="AppFontOverlay_Samsung" tools:ignore="MissingParent">
-        <item name="appFontFamily">@font/samsung_one</item>
-    </style>
-
-    <style name="AppFontOverlay_System" tools:ignore="MissingParent">
-        <!-- point to an existing app font instead of a non-existing roboto or @null -->
-        <item name="appFontFamily">@font/wp_rglr</item>
-    </style>
-
-    <!-- Safety helpers / legacy -->
-    <style name="DatePickerTheme" parent="@style/Widget.AppCompat.Light.DatePicker" />
-    <style name="BottomNavViewTextMode" parent="@style/Widget.Design.BottomNavigationView" />
 
 </resources>
