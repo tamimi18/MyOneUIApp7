@@ -15,7 +15,6 @@ import androidx.preference.PreferenceManager;
 import androidx.preference.SwitchPreferenceCompat;
 
 import dev.oneuiproject.oneui.widget.Toast;
-
 public class SettingsFragment extends PreferenceFragmentCompat implements Preference.OnPreferenceChangeListener {
 
     private Context mContext;
@@ -35,36 +34,12 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Prefer
     @Override
     public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
         setPreferencesFromResource(R.xml.preferences, rootKey);
-        syncSettingsHelper();
+        // syncSettingsHelper(); // ★★★ محذوف ★★★
     }
 
     /**
-     * مزامنة التفضيلات القديمة إن وجدت إلى DefaultSharedPreferences
+     * ★★★ تم حذف دالة syncSettingsHelper() بالكامل ★★★
      */
-    private void syncSettingsHelper() {
-        try {
-            SharedPreferences defaultPrefs = PreferenceManager.getDefaultSharedPreferences(mContext);
-            SharedPreferences oldPrefs = mContext.getSharedPreferences("AppSettings", Context.MODE_PRIVATE);
-
-            if (oldPrefs.getAll().size() > 0 && defaultPrefs.getAll().size() == 0) {
-                SharedPreferences.Editor editor = defaultPrefs.edit();
-                for (String key : oldPrefs.getAll().keySet()) {
-                    Object value = oldPrefs.getAll().get(key);
-                    if (value instanceof String) {
-                        editor.putString(key, (String) value);
-                    } else if (value instanceof Integer) {
-                        // ListPreference تعتمد على entryValues كنصوص
-                        editor.putString(key, String.valueOf(value));
-                    } else if (value instanceof Boolean) {
-                        editor.putBoolean(key, (Boolean) value);
-                    }
-                }
-                editor.apply();
-            }
-        } catch (Exception e) {
-            android.util.Log.e("SettingsFragment", "Error syncing preferences", e);
-        }
-    }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -107,7 +82,6 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Prefer
     @Override
     public boolean onPreferenceChange(Preference preference, Object newValue) {
         String key = preference.getKey();
-
         if ("language_mode".equals(key)) {
             int mode = Integer.parseInt((String) newValue);
             new SettingsHelper(mContext).setLanguageMode(mode);
@@ -122,14 +96,21 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Prefer
             helper.applyTheme();
             // عادة لا نحتاج recreate فوري، لكن يمكنك إضافته لو أردت
             return true;
-
         } else if ("font_mode".equals(key)) {
             int mode = Integer.parseInt((String) newValue);
-
             SettingsHelper sh = new SettingsHelper(mContext);
             sh.setFontMode(mode);
 
-            // Removed direct FontHelper.applyFont to rely on theme overlays applied in BaseActivity
+            /* ★★★ محذوف ★★★
+            try {
+                // تطبيق الخط على مستوى Typeface
+                FontHelper.applyFont(mContext.getApplicationContext());
+            } catch (Exception e) {
+                android.util.Log.e("SettingsFragment", "FontHelper.applyFont failed", e);
+            }
+            */
+
+            // إعادة إنشاء كل الأنشطة عبر MyApplication (بدلاً من broadcast)
             MyApplication app = MyApplication.getInstance();
             if (app != null) {
                 app.recreateAllActivities();
@@ -138,16 +119,15 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Prefer
             }
 
             return true;
-
         } else if ("notifications_enabled".equals(key)) {
             boolean enabled = (Boolean) newValue;
             new SettingsHelper(mContext).setNotificationsEnabled(enabled);
 
             // استخدام الموارد الصحيحة الموجودة في strings.xml
             String msg = enabled
-                    ? mContext.getString(R.string.notifications_enabled)
+                    ?
+                    mContext.getString(R.string.notifications_enabled)
                     : mContext.getString(R.string.notifications_disabled);
-
             Toast.makeText(mContext, msg, Toast.LENGTH_SHORT).show();
             return true;
 
