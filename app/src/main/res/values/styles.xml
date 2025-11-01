@@ -57,9 +57,10 @@
         <item name="android:textSize">14sp</item>
     </style>
 
+    <!-- NavigationView style WITHOUT external color reference -->
     <style name="NavigationView.Style" parent="@style/Widget.Design.NavigationView">
         <item name="itemTextAppearance">@style/NavigationView.Item</item>
-        <item name="itemIconTint">@color/nav_item_tint</item>
+        <!-- removed itemIconTint reference to avoid missing resource -->
     </style>
 
     <!-- Navigation header title/subtitle -->
@@ -93,7 +94,8 @@
         <item name="android:fontFamily">?attr/appFontFamily</item>
     </style>
 
-    <!-- Overlays (choose one to apply or reference in your overlays files) -->
+    <!-- Overlays (choose one to apply or reference in your overlays files)
+         Use existing fonts in your res/font (e.g., wp_rglr, samsung_one). -->
     <style name="AppFontOverlay_WP" tools:ignore="MissingParent">
         <item name="appFontFamily">@font/wp_rglr</item>
     </style>
@@ -103,8 +105,8 @@
     </style>
 
     <style name="AppFontOverlay_System" tools:ignore="MissingParent">
-        <!-- use an explicit system-safe fallback instead of @null -->
-        <item name="appFontFamily">@font/roboto</item>
+        <!-- point to an existing app font instead of a non-existing roboto or @null -->
+        <item name="appFontFamily">@font/wp_rglr</item>
     </style>
 
     <!-- Safety helpers / legacy -->
