@@ -45,8 +45,7 @@
                     android:gravity="center"
                     android:text="@string/app_name"
                     android:textSize="30sp"
-                    android:textColor="?android:attr/textColorPrimary"
-                    android:fontFamily="sans-serif-light" />
+                    android:textColor="?android:attr/textColorPrimary"/>
 
                 <androidx.appcompat.widget.AppCompatTextView
                     android:id="@+id/header_app_subtitle"
@@ -116,7 +115,6 @@
                             android:text="@string/feature1"
                             android:textSize="16sp"
                             android:textColor="?android:attr/textColorSecondary"
-                            android:fontFamily="sans-serif"
                             android:padding="16dp" />
 
                         <TextView
@@ -126,7 +124,6 @@
                             android:text="@string/feature2"
                             android:textSize="16sp"
                             android:textColor="?android:attr/textColorSecondary"
-                            android:fontFamily="sans-serif"
                             android:padding="16dp" />
 
                         <TextView
@@ -136,7 +133,6 @@
                             android:text="@string/feature3"
                             android:textSize="16sp"
                             android:textColor="?android:attr/textColorSecondary"
-                            android:fontFamily="sans-serif"
                             android:padding="16dp" />
 
                         <TextView
@@ -146,7 +142,6 @@
                             android:text="@string/feature4"
                             android:textSize="16sp"
                             android:textColor="?android:attr/textColorSecondary"
-                            android:fontFamily="sans-serif"
                             android:padding="16dp" />
 
                     </LinearLayout>
@@ -175,7 +170,6 @@
                         android:text="@string/about_text"
                         android:textSize="16sp"
                         android:textColor="?android:attr/textColorSecondary"
-                        android:fontFamily="sans-serif"
                         android:padding="16dp" />
 
                 </dev.oneuiproject.oneui.widget.RoundLinearLayout>
