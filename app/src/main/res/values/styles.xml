@@ -5,7 +5,7 @@
     <attr name="appFontFamily" format="reference" />
 
     <!-- Main app theme (set this in AndroidManifest: android:theme="@style/AppTheme") -->
-    <style name="AppTheme" parent="OneUITheme">
+        <style name="DatePickerTheme" parent="@style/Widget.AppCompat.Light.DatePicker" />
         <!-- global fallback that reads the attribute -->
         <item name="android:fontFamily">?attr/appFontFamily</item>
 
