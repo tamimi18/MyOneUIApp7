@@ -3,14 +3,14 @@
     <style name="AppTheme" parent="OneUITheme">
     </style>
 
-    <style name="AppTheme.Font.System" parent="AppTheme">
+    <style name="AppTheme.Font.System" parent="OneUITheme">
         <item name="android:fontFamily">sans-serif</item> </style>
 
-    <style name="AppTheme.Font.WF" parent="AppTheme">
+    <style name="AppTheme.Font.WF" parent="OneUITheme">
         <item name="android:fontFamily">@font/wf_rglr</item>
     </style>
 
-    <style name="AppTheme.Font.Samsung" parent="AppTheme">
+    <style name="AppTheme.Font.Samsung" parent="OneUITheme">
         <item name="android:fontFamily">@font/samsung_one</item>
     </style>
 
