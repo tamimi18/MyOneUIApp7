@@ -7,10 +7,7 @@
     <!-- App theme (set this in AndroidManifest: android:theme="@style/AppTheme") -->
     <style name="AppTheme" parent="OneUITheme">
         <!-- Use our text appearances that read ?attr/appFontFamily -->
-        <item name="android:textAppearanceBody1">@style/AppTextAppearance.Body</item>
         <item name="textAppearanceBody1">@style/AppTextAppearance.Body</item>
-
-        <item name="android:textAppearanceHeadline6">@style/AppTextAppearance.Title</item>
         <item name="textAppearanceHeadline6">@style/AppTextAppearance.Title</item>
 
         <!-- fallback default fontFamily: reads the attribute -->
@@ -29,27 +26,20 @@
         <item name="android:fontFamily">?attr/appFontFamily</item>
     </style>
 
-    <!-- Overlays: apply one of these in manifest (AppTheme) or let build-time override choose.
-         If you set AppTheme in manifest, the selected overlay must be applied by replacing AppTheme parent
-         or by defining a style variant and using it directly in manifest.
-         These overlays are safe to apply via Theme.applyStyle(programmatically) if you later choose that route. -->
-
+    <!-- Overlays -->
     <style name="AppFontOverlay_WP" parent="">
-        <!-- ensure res/font/wp_rglr exists -->
         <item name="appFontFamily">@font/wp_rglr</item>
     </style>
 
     <style name="AppFontOverlay_Samsung" parent="">
-        <!-- ensure res/font/samsung_one exists -->
         <item name="appFontFamily">@font/samsung_one</item>
     </style>
 
-    <!-- Optional: a System (no change) overlay for clarity -->
     <style name="AppFontOverlay_System" parent="">
         <item name="appFontFamily">@null</item>
     </style>
 
-    <!-- Helper legacy styles kept if needed -->
+    <!-- Helper legacy styles -->
     <style name="DatePickerTheme" parent="@style/Widget.AppCompat.Light.DatePicker" />
     <style name="BottomNavViewTextMode" parent="@style/Widget.Design.Light.BottomNavigationView.Text" />
 
