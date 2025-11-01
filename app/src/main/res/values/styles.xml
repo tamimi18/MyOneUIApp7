@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="AppTheme" parent="OneUITheme">
-        <item name="android:fontFamily">@font/wf_rglr</item>
     </style>
 
     <style name="AppTheme.Font.System" parent="AppTheme">
