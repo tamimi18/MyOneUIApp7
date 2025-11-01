@@ -1,26 +1,31 @@
 package com.example.oneuiapp;
-
 import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
 import android.os.Bundle;
 import android.util.Log;
+
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
-
 public class MyApplication extends Application {
 
     private static final String TAG = "MyApplication";
     private static MyApplication sInstance;
-
+    // قائمة لتخزين الأنشطة
     private static final List<WeakReference<Activity>> activities = new ArrayList<>();
-
     @Override
     protected void attachBaseContext(Context base) {
+        // apply locale wrapping early
         super.attachBaseContext(SettingsHelper.wrapContext(base));
         sInstance = this;
-        // Removed FontHelper.applyFont here to avoid overriding theme overlay Typeface
+        /* ★★★ محذوف ★★★
+        try {
+            FontHelper.applyFont(base);
+        } catch (Exception e) {
+            Log.e(TAG, "applyFont failed in attachBaseContext", e);
+        }
+        */
     }
 
     @Override
@@ -31,15 +36,21 @@ public class MyApplication extends Application {
         CrashHandler.init(this);
         SettingsHelper.initializeFromSettings(this);
 
-        // Removed FontHelper.applyFont(this) — font chosen via theme overlays, not global Typeface patching
+        /* ★★★ محذوف ★★★
+        try {
+            FontHelper.applyFont(this);
+        } catch (Exception e) {
+            Log.e(TAG, "applyFont failed in onCreate", e);
+        }
+        */
 
+        // تسجيل الأنشطة
         registerActivityLifecycleCallbacks(new ActivityLifecycleCallbacks() {
             @Override
             public void onActivityCreated(Activity activity, Bundle savedInstanceState) {
                 activities.add(new WeakReference<>(activity));
-                int overlayRes = getFontOverlayResIdForCurrentMode();
-                applyOverlayToActivityIfNeeded(activity, overlayRes);
-                // Removed FontHelper.applyFont(activity) to prevent conflicts with overlays
+                // تطبيق الخط مباشرة عند إنشاء أي Activity
+                // FontHelper.applyFont(activity); // ★★★ محذوف ★★★
             }
 
             @Override public void onActivityStarted(Activity activity) {}
@@ -47,15 +58,7 @@ public class MyApplication extends Application {
             @Override public void onActivityPaused(Activity activity) {}
             @Override public void onActivityStopped(Activity activity) {}
             @Override public void onActivitySaveInstanceState(Activity activity, Bundle outState) {}
-            @Override public void onActivityDestroyed(Activity activity) {
-                for (int i = activities.size() - 1; i >= 0; i--) {
-                    WeakReference<Activity> ref = activities.get(i);
-                    Activity a = ref.get();
-                    if (a == null || a == activity) {
-                        activities.remove(i);
-                    }
-                }
-            }
+            @Override public void onActivityDestroyed(Activity activity) {}
         });
     }
 
@@ -63,45 +66,14 @@ public class MyApplication extends Application {
         return sInstance;
     }
 
-    private int getFontOverlayResIdForCurrentMode() {
-        try {
-            SettingsHelper sh = new SettingsHelper(this);
-            int mode = sh.getFontMode();
-            switch (mode) {
-                case SettingsHelper.FONT_WP:
-                    return R.style.AppFontOverlay_WP;
-                case SettingsHelper.FONT_SAMSUNG:
-                    return R.style.AppFontOverlay_Samsung;
-                case SettingsHelper.FONT_SYSTEM:
-                default:
-                    return 0;
-            }
-        } catch (Exception e) {
-            Log.w(TAG, "getFontOverlayResIdForCurrentMode failed", e);
-            return 0;
-        }
-    }
-
-    private void applyOverlayToActivityIfNeeded(Activity activity, int overlayResId) {
-        if (activity == null || overlayResId == 0) return;
-        try {
-            activity.getTheme().applyStyle(overlayResId, true);
-        } catch (Exception e) {
-            Log.w(TAG, "applyOverlayToActivityIfNeeded failed", e);
-        }
-    }
-
+    /**
+     * إعادة إنشاء كل الأنشطة المفتوحة لتطبيق الخط الجديد
+     */
     public void recreateAllActivities() {
-        int overlay = getFontOverlayResIdForCurrentMode();
-        for (WeakReference<Activity> ref : new ArrayList<>(activities)) {
+        for (WeakReference<Activity> ref : activities) {
             Activity act = ref.get();
             if (act != null && !act.isFinishing()) {
-                applyOverlayToActivityIfNeeded(act, overlay);
-                try {
-                    act.recreate();
-                } catch (Exception e) {
-                    Log.w(TAG, "Failed to recreate activity " + act.getClass().getName(), e);
-                }
+                act.recreate();
             }
         }
     }
