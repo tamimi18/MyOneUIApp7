@@ -4,9 +4,16 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.database.Cursor;
 import android.graphics.Typeface;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.ParcelFileDescriptor;
+import android.provider.OpenableColumns;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -19,27 +26,37 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.preference.PreferenceManager;
+import androidx.documentfile.provider.DocumentFile;
 
 import dev.oneuiproject.oneui.widget.Toast;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.RandomAccessFile;
-
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 /**
  * FontViewerFragment - عارض الخطوط مع تحديث تلقائي لنص المعاينة
- * ويحتوي الآن على دالة استخراج metadata العامة getFontMetaData()
+ * تحسين:
+ * - تمرير takeFlags لاختبار persistable URI بشكل موثوق
+ * - دعم اكتشاف TTC (TrueType Collection) بسيط
+ * - حفظ path بعد النسخ إلى storage المحلي
+ * - تنظيف الموارد عند onDestroyView
+ * - تعديلات طفيفة لتحسين استرجاع الاسم الحقيقي للخط
  */
 public class FontViewerFragment extends Fragment implements SharedPreferences.OnSharedPreferenceChangeListener {
 
     private static final String KEY_FONT_PATH = "font_path";
     private static final String KEY_FONT_FILE_NAME = "font_file_name";
     private static final String KEY_FONT_REAL_NAME = "font_real_name";
-
     private static final String PREF_LAST_FONT_PATH = "last_font_path";
     private static final String PREF_LAST_FONT_FILE_NAME = "last_font_file_name";
     private static final String PREF_LAST_FONT_REAL_NAME = "last_font_real_name";
+    private static final String PREF_LAST_FONT_URI = "last_font_uri";
+    private static final String TAG = "FontViewerFragment";
 
     private LinearLayout selectFontButton;
     private TextView previewSentence;
@@ -56,6 +73,8 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
     private ActivityResultLauncher<Intent> fontPickerLauncher;
     private OnFontChangedListener fontChangedListener;
 
+    private final ExecutorService bgExecutor = Executors.newSingleThreadExecutor();
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
     public interface OnFontChangedListener {
         void onFontChanged(String fontRealName, String fontFileName);
         void onFontCleared();
@@ -78,15 +97,55 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         fontPickerLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> {
                 if (result.getResultCode() == Activity.RESULT_OK &&
                         result.getData() != null) {
-                    Uri fontUri = result.getData().getData();
+                    Intent data = result.getData();
+                    Uri fontUri = data.getData();
                     if (fontUri != null) {
-                        loadFontFromUri(fontUri);
+                        // استخرج takeFlags من intent ثم حاول أخذ persistable permission هنا
+                    
+                        final int flags = data.getFlags();
+                        final int takeFlags = flags & (Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                        if ((flags & Intent.FLAG_GRANT_READ_URI_PERMISSION) != 0) {
+                            try {
+                                requireContext().getContentResolver().takePersistableUriPermission(fontUri, takeFlags);
+                            } catch (SecurityException se) {
+                                Log.w(TAG, "takePersistableUriPermission failed: " + se.getMessage());
+                            } catch (Exception e) {
+                                Log.w(TAG, "takePersistableUriPermission error: " + e.getMessage());
+                            }
+                        }
+
+                        // قم بالنسخ والمعالجة في خيط خلفي
+                        bgExecutor.execute(() -> {
+                            File copied = copyUriToAppStorage(fontUri, null);
+                            String fileName = getFileNameFromUri(fontUri);
+                            String realName = "Unknown Font";
+                            if (copied != null && copied.exists()) {
+                                realName = extractFontRealName(copied);
+                                final String finalRealName = realName;
+                                final String finalFileName = fileName != null ? fileName : copied.getName();
+                                // احفظ أيضًا المسار المحلي لأننا نسخنا الملف داخل app storage
+                                saveLastUsedFont(copied.getAbsolutePath(), finalFileName, finalRealName);
+                                final Uri finalUri = fontUri;
+                                // سطِّر عملية إنشاء typeface على الواجهة الرئيسية
+                            
+                                mainHandler.post(() -> {
+                                    loadFontFromPath(copied.getAbsolutePath(), finalFileName, finalRealName);
+                                    // سجل URI مع takeFlags حتى يمكن استعادته بشكل آمن لاحقاً
+                                    saveLastUsedFontUri(finalUri, finalFileName, finalRealName, takeFlags);
+                                });
+                            } else {
+                                mainHandler.post(() -> {
+                                    Toast.makeText(requireContext(),
+                                            getString(R.string.font_viewer_error_loading_font),
+                                            Toast.LENGTH_SHORT).show();
+                                });
+                            }
+                        });
                     }
                 }
             }
@@ -105,20 +164,16 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
     public void onViewCreated(@NonNull View view, @Nullable Bundle
                                 savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-
         initViews(view);
         selectFontButton.setOnClickListener(v -> openFontPicker());
 
         if (savedInstanceState != null) {
             currentFontPath = savedInstanceState.getString(KEY_FONT_PATH);
-            currentFontFileName =
-                savedInstanceState.getString(KEY_FONT_FILE_NAME);
-            currentFontRealName =
-                savedInstanceState.getString(KEY_FONT_REAL_NAME);
+            currentFontFileName = savedInstanceState.getString(KEY_FONT_FILE_NAME);
+            currentFontRealName = savedInstanceState.getString(KEY_FONT_REAL_NAME);
 
             if (currentFontPath != null && !currentFontPath.isEmpty()) {
-                loadFontFromPath(currentFontPath, currentFontFileName,
-                                 currentFontRealName);
+                loadFontFromPath(currentFontPath, currentFontFileName, currentFontRealName);
             }
         } else {
             loadLastUsedFont();
@@ -130,7 +185,6 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
     @Override
     public void onResume() {
         super.onResume();
-
         sharedPreferences = PreferenceManager.getDefaultSharedPreferences(requireContext());
         sharedPreferences.registerOnSharedPreferenceChangeListener(this);
 
@@ -148,6 +202,21 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
         if (sharedPreferences != null) {
             sharedPreferences.unregisterOnSharedPreferenceChangeListener(this);
         }
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        // تنظيف مراجع الواجهة لمنع NullPointer و memory leaks
+        selectFontButton = null;
+        previewSentence = null;
+        previewNumbers = null;
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        bgExecutor.shutdownNow();
     }
 
     @Override
@@ -169,7 +238,6 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
         previewSentence.setText(previewText);
 
         previewNumbers.setText(getString(R.string.font_viewer_english_numbers));
-
         if (currentTypeface != null) {
             applyFontToPreviewTexts();
         }
@@ -195,143 +263,77 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
             Toast.makeText(requireContext(),
                 getString(R.string.font_viewer_error_opening_picker),
                 Toast.LENGTH_SHORT).show();
+            Log.e(TAG, "Error opening font picker", e);
         }
     }
 
-    private void loadFontFromUri(Uri uri) {
+    /**
+     * نسخ URI إلى مجلد خاص بالتطبيق (filesDir/fonts) ورجوع ملف الوجهة.
+     * يجب استدعاؤها على خيط خلفي.
+     */
+    private File copyUriToAppStorage(Uri uri, String suggestedName) {
         try {
-            String fileName = getFileNameFromUri(uri);
-            File cacheDir = requireContext().getCacheDir();
-            File fontFile = new File(cacheDir, "selected_font.ttf");
+            String fileName = suggestedName != null ?
+                suggestedName : getFileNameFromUri(uri);
+            if (fileName == null) fileName = "font_" + System.currentTimeMillis() + ".ttf";
 
-            try (InputStream inputStream =
-                     requireContext().getContentResolver().openInputStream(uri);
-                 FileOutputStream outputStream = new FileOutputStream(fontFile)) {
+            String ext = ".ttf";
+            int idx = fileName.lastIndexOf('.');
+            if (idx > 0 && idx < fileName.length() - 1) {
+                ext = fileName.substring(idx);
+            }
 
-                if (inputStream == null) {
-                    throw new Exception("Cannot open font file");
-                }
+            File fontsDir = new File(requireContext().getFilesDir(), "fonts");
+            if (!fontsDir.exists()) {
+                boolean ok = fontsDir.mkdirs();
+                if (!ok) Log.w(TAG, "Failed to create fonts dir");
+            }
 
-                byte[] buffer = new byte[4096];
-                int bytesRead;
-                while ((bytesRead = inputStream.read(buffer)) != -1) {
-                    outputStream.write(buffer, 0, bytesRead);
+            File outFile = new File(fontsDir, "selected_font_" + UUID.randomUUID().toString() + ext);
+            try (InputStream in = requireContext().getContentResolver().openInputStream(uri);
+                 FileOutputStream out = new FileOutputStream(outFile)) {
+                if (in == null) return null;
+                byte[] buf = new byte[4096];
+                int r;
+                while ((r = in.read(buf)) != -1) {
+                    out.write(buf, 0, r);
                 }
             }
 
-            String realName = extractFontRealName(fontFile);
-            loadFontFromPath(fontFile.getAbsolutePath(), fileName, realName);
-            saveLastUsedFont(fontFile.getAbsolutePath(), fileName, realName);
-
+            return outFile;
         } catch (Exception e) {
-            Toast.makeText(requireContext(),
-                getString(R.string.font_viewer_error_loading_font),
-                Toast.LENGTH_SHORT).show();
-            e.printStackTrace();
+            Log.w(TAG, "copyUriToAppStorage failed: " + e.getMessage());
+            return null;
         }
-    }
-
-    private String extractFontRealName(File fontFile) {
-        try (RandomAccessFile raf = new RandomAccessFile(fontFile, "r")) {
-            raf.seek(0);
-            int sfntVersion = raf.readInt();
-
-            if (sfntVersion != 0x00010000 && sfntVersion != 0x4F54544F) {
-                return "Unknown Font";
-            }
-
-            int numTables = raf.readUnsignedShort();
-            raf.skipBytes(6);
-
-            long nameTableOffset = -1;
-
-            for (int i = 0; i < numTables; i++) {
-                byte[] tag = new byte[4];
-                raf.read(tag);
-                String tagName = new String(tag);
-
-                raf.skipBytes(4);
-                long offset = readUInt32(raf);
-                readUInt32(raf);
-
-                if ("name".equals(tagName)) {
-                    nameTableOffset = offset;
-                    break;
-                }
-            }
-
-            if (nameTableOffset == -1) {
-                return "Unknown Font";
-            }
-
-            raf.seek(nameTableOffset);
-            raf.readUnsignedShort();
-            int count = raf.readUnsignedShort();
-            int stringOffset = raf.readUnsignedShort();
-
-            String fontName = null;
-            String familyName = null;
-
-            for (int i = 0; i < count; i++) {
-                int platformID = raf.readUnsignedShort();
-                raf.readUnsignedShort();
-                raf.readUnsignedShort();
-                int nameID = raf.readUnsignedShort();
-                int length = raf.readUnsignedShort();
-                int offset = raf.readUnsignedShort();
-
-                if ((nameID == 4 || nameID == 1) && (platformID == 3 ||
-                                                    platformID == 1)) {
-                    long currentPos = raf.getFilePointer();
-                    raf.seek(nameTableOffset + stringOffset + offset);
-
-                    byte[] nameBytes = new byte[length];
-                    raf.read(nameBytes);
-
-                    String name;
-                    if (platformID == 3) {
-                        name = new String(nameBytes, "UTF-16BE");
-                    } else {
-                        name = new String(nameBytes, "US-ASCII");
-                    }
-
-                    if (nameID == 4) {
-                        fontName = name;
-                    } else if (nameID == 1 && familyName == null) {
-                        familyName = name;
-                    }
-
-                    raf.seek(currentPos);
-
-                    if (fontName != null) {
-                        break;
-                    }
-                }
-            }
-
-            return fontName != null ? fontName : (familyName != null ?
-                    familyName : "Unknown Font");
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "Unknown Font";
-        }
-    }
-
-    private long readUInt32(RandomAccessFile raf) throws Exception {
-        return ((long) raf.readInt()) & 0xFFFFFFFFL;
     }
 
     private void loadFontFromPath(String path, String fileName, String realName) {
+        // إنشاء Typeface يمكن أن يكون خفيفا أو ثقيلا حسب الجهاز؛
+        // استدعاؤه على UI لأنه يحدث تغييرات واجهة
         try {
             File fontFile = new File(path);
-
             if (!fontFile.exists()) {
                 resetFontDisplay();
                 return;
             }
 
-            Typeface typeface = Typeface.createFromFile(fontFile);
+            Typeface typeface = null;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                // حاول إنشاء من ملف مباشرة باستخدام Builder إن أمكن
+                try {
+                    ParcelFileDescriptor pfd = ParcelFileDescriptor.open(fontFile, ParcelFileDescriptor.MODE_READ_ONLY);
+                    if (pfd != null) {
+                        typeface = new Typeface.Builder(pfd.getFileDescriptor()).build();
+                        pfd.close();
+                    }
+                } catch (Exception e) {
+                    Log.w(TAG, "Typeface.Builder failed, fallback to createFromFile: " + e.getMessage());
+                }
+            }
+
+            if (typeface == null) {
+                typeface = Typeface.createFromFile(fontFile);
+            }
 
             if (typeface != null) {
                 currentTypeface = typeface;
@@ -340,7 +342,6 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
                 currentFontRealName = realName;
 
                 applyFontToPreviewTexts();
-
                 if (fontChangedListener != null) {
                     fontChangedListener.onFontChanged(realName, fileName);
                 }
@@ -352,15 +353,15 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
             Toast.makeText(requireContext(),
                 getString(R.string.font_viewer_error_loading_font),
                 Toast.LENGTH_SHORT).show();
+            Log.e(TAG, "Error creating typeface from path: " + path, e);
             resetFontDisplay();
-            e.printStackTrace();
         }
     }
 
     private void applyFontToPreviewTexts() {
         if (currentTypeface != null) {
-            previewSentence.setTypeface(currentTypeface);
-            previewNumbers.setTypeface(currentTypeface);
+            if (previewSentence != null) previewSentence.setTypeface(currentTypeface);
+            if (previewNumbers != null) previewNumbers.setTypeface(currentTypeface);
         }
     }
 
@@ -371,38 +372,54 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
         currentFontRealName = null;
 
         Typeface defaultTypeface = Typeface.DEFAULT;
-        previewSentence.setTypeface(defaultTypeface);
-        previewNumbers.setTypeface(defaultTypeface);
+        if (previewSentence != null) previewSentence.setTypeface(defaultTypeface);
+        if (previewNumbers != null) previewNumbers.setTypeface(defaultTypeface);
 
         if (fontChangedListener != null) {
             fontChangedListener.onFontCleared();
         }
     }
 
+    /**
+     * تحسين الحصول على اسم الملف باستخدام OpenableColumns بشكل آمن.
+     */
     private String getFileNameFromUri(Uri uri) {
-        String fileName = "Unknown Font";
-
+        String fileName = null;
+        Cursor cursor = null;
         try {
-            android.database.Cursor cursor = requireContext().getContentResolver()
-                    .query(uri, null, null, null, null);
-
+            cursor = requireContext().getContentResolver().query(uri, new String[]{OpenableColumns.DISPLAY_NAME}, null, null, null);
             if (cursor != null && cursor.moveToFirst()) {
-                int nameIndex = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME);
-                if (nameIndex >= 0) {
-                    fileName = cursor.getString(nameIndex);
-                }
-                cursor.close();
+                int idx = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+                if (idx >= 0) fileName = cursor.getString(idx);
             }
-
-            if (fileName.equals("Unknown Font")) {
-                String path = uri.getPath();
-                if (path != null) {
-                    fileName = path.substring(path.lastIndexOf('/') + 1);
-                }
-            }
-
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.w(TAG, "getFileNameFromUri failed: " + e.getMessage());
+        } finally {
+            if (cursor != null) cursor.close();
+        }
+
+        if (fileName == null) {
+            // حاول الحصول من DocumentFile ثم من المسار كملاذ أخير
+            try {
+                DocumentFile doc = DocumentFile.fromSingleUri(requireContext(), uri);
+                if (doc != null && doc.getName() != null) {
+                    fileName = doc.getName();
+                }
+            } catch (Exception ignored) {}
+        }
+
+        if (fileName == null) {
+            String path = uri.getPath();
+            if (path != null) {
+                int last = path.lastIndexOf('/');
+                if (last >= 0 && last < path.length() - 1) {
+                    fileName = path.substring(last + 1);
+                }
+            }
+        }
+
+        if (fileName == null) {
+            fileName = "font_" + System.currentTimeMillis() + ".ttf";
         }
 
         return fileName;
@@ -417,23 +434,85 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
             .apply();
     }
 
+    /**
+     * احفظ URI الممنوح كـ String وحاول أخذ persistable permission.
+     * أضفت معلمة takeFlags لتمرير ما تم استخلاصه من Intent.flags.
+     */
+    private void saveLastUsedFontUri(Uri uri, String fileName, String realName, int takeFlags) {
+        try {
+            if (takeFlags != 0) {
+                try {
+                    requireContext().getContentResolver().takePersistableUriPermission(uri, takeFlags);
+                } catch (SecurityException se) {
+                    Log.w(TAG, "takePersistableUriPermission failed: " + se.getMessage());
+                }
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "saveLastUsedFontUri permission handling failed: " + e.getMessage());
+        }
+
+        requireContext().getSharedPreferences("FontViewerPrefs", Context.MODE_PRIVATE)
+            .edit()
+            .putString(PREF_LAST_FONT_URI, uri.toString())
+            .putString(PREF_LAST_FONT_FILE_NAME, fileName)
+            .putString(PREF_LAST_FONT_REAL_NAME, realName)
+            .apply();
+    }
+
+    // ★★★ تم تعديل هذا الكود لإصلاح الخطأ المنطقي ★★★
     private void loadLastUsedFont() {
         android.content.SharedPreferences prefs =
             requireContext().getSharedPreferences("FontViewerPrefs", Context.MODE_PRIVATE);
-
+        
+        // ★★★ جديد: تحقق من المسار المحلي أولاً ★★★
         String lastPath = prefs.getString(PREF_LAST_FONT_PATH, null);
         String lastFileName = prefs.getString(PREF_LAST_FONT_FILE_NAME, null);
         String lastRealName = prefs.getString(PREF_LAST_FONT_REAL_NAME, null);
-
+    
         if (lastPath != null && !lastPath.isEmpty()) {
-            loadFontFromPath(lastPath, lastFileName, lastRealName);
+            File localFile = new File(lastPath);
+            if (localFile.exists()) {
+                // الملف المحلي موجود، قم بتحميله مباشرة
+                loadFontFromPath(lastPath, lastFileName, lastRealName);
+                return;
+            }
         }
+    
+        // ★★★ احتياطي: إذا لم يوجد المسار المحلي، حاول إعادة النسخ من الـ URI ★★★
+        String lastUri = prefs.getString(PREF_LAST_FONT_URI, null);
+        if (lastUri != null) {
+            try {
+                final Uri uri = Uri.parse(lastUri);
+                // استخدام المتغيرات المحلية في lambda
+                final String finalLastFileName = lastFileName;
+                final String finalLastRealName = lastRealName;
+    
+                bgExecutor.execute(() -> {
+                    // حاول نسخ من URI المحفوظ ثم تحميله
+                    File fontFile = copyUriToAppStorage(uri, finalLastFileName);
+                    if (fontFile != null && fontFile.exists()) {
+                        final String fn = finalLastFileName != null ? finalLastFileName : fontFile.getName();
+                        final String rn = finalLastRealName != null ? finalLastRealName : extractFontRealName(fontFile);
+                        // حفظ path المحلّي لأننا نسخنا الملف
+                        saveLastUsedFont(fontFile.getAbsolutePath(), fn, rn);
+                        mainHandler.post(() -> loadFontFromPath(fontFile.getAbsolutePath(), fn, rn));
+                    } else {
+                        mainHandler.post(this::resetFontDisplay);
+                    }
+                });
+                return;
+            } catch (Exception e) {
+                Log.w(TAG, "loadLastUsedFont failed to parse URI: " + e.getMessage());
+            }
+        }
+        
+        // لا يوجد شيء محفوظ، لا تفعل شيئاً
     }
+
 
     @Override
     public void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
-
         if (currentFontPath != null) {
             outState.putString(KEY_FONT_PATH, currentFontPath);
         }
@@ -467,21 +546,21 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
 
         out.put("Path", currentFontPath);
         out.put("FileName", currentFontFileName != null ? currentFontFileName : "");
-
-        try (java.io.RandomAccessFile raf = new java.io.RandomAccessFile(new java.io.File(currentFontPath), "r")) {
+        // Parsing may be heavy but here it's an on-demand method;
+        // keep it as-is but it's safe to call on BG thread if desired
+        try (RandomAccessFile raf = new RandomAccessFile(new File(currentFontPath), "r")) {
             raf.seek(0);
             int sfntVersion = raf.readInt();
             if (sfntVersion != 0x00010000 && sfntVersion != 0x4F54544F) return out;
 
             int numTables = raf.readUnsignedShort();
             raf.skipBytes(6);
-
             long nameTableOffset = -1;
 
             for (int i = 0; i < numTables; i++) {
                 byte[] tag = new byte[4];
                 raf.readFully(tag);
-                String tagName = new String(tag, "US-ASCII");
+                String tagName = new String(tag, StandardCharsets.US_ASCII);
                 raf.skipBytes(4); // checksum
                 long offset = readUInt32(raf);
                 long length = readUInt32(raf);
@@ -496,7 +575,6 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
                 int count = raf.readUnsignedShort();
                 int stringOffset = raf.readUnsignedShort();
                 long strBase = nameTableOffset + stringOffset;
-
                 String fullName = null, family = null, subfamily = null, postScriptName = null, version = null, manuf = null;
                 for (int i = 0; i < count; i++) {
                     int platformID = raf.readUnsignedShort();
@@ -505,25 +583,33 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
                     int nameID = raf.readUnsignedShort();
                     int length = raf.readUnsignedShort();
                     int offset = raf.readUnsignedShort();
-
                     long cur = raf.getFilePointer();
                     raf.seek(strBase + offset);
                     byte[] data = new byte[length];
                     raf.readFully(data);
 
                     String name;
-                    if (platformID == 3) { // Windows: UTF-16BE
-                        name = new String(data, "UTF-16BE");
+                    if (platformID == 3 || platformID == 0) { // Windows or Unicode
+                        name = new String(data, StandardCharsets.UTF_16BE);
+                    } else if (platformID == 1) { // Macintosh
+                        try {
+                            name = new String(data, Charset.forName("MacRoman"));
+                        } catch (Exception ex) {
+                            name = new String(data, StandardCharsets.ISO_8859_1);
+                        }
                     } else {
-                        name = new String(data, "US-ASCII");
+                        name = new String(data, StandardCharsets.ISO_8859_1);
                     }
 
                     switch (nameID) {
-                        case 0: if (manuf == null) manuf = name; break;
+                        case 0: if (manuf == null) manuf = name;
+                            break;
                         case 1: if (family == null) family = name; break;
-                        case 2: if (subfamily == null) subfamily = name; break;
+                        case 2: if (subfamily == null) subfamily = name;
+                            break;
                         case 4: if (fullName == null) fullName = name; break;
-                        case 5: if (version == null) version = name; break;
+                        case 5: if (version == null) version = name;
+                            break;
                         case 6: if (postScriptName == null) postScriptName = name; break;
                     }
 
@@ -539,7 +625,7 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
             }
 
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.w(TAG, "getFontMetaData failed: " + e.getMessage());
         }
 
         if (!out.containsKey("FullName") && currentFontRealName != null) {
@@ -547,4 +633,116 @@ public class FontViewerFragment extends Fragment implements SharedPreferences.On
         }
         return out;
     }
+
+    private String extractFontRealName(File fontFile) {
+        try (RandomAccessFile raf = new RandomAccessFile(fontFile, "r")) {
+            // اكتشاف نوع الملف (TTC أو SFNT)
+            raf.seek(0);
+            byte[] header = new byte[4];
+            raf.readFully(header);
+            String hdr = new String(header, StandardCharsets.US_ASCII);
+            long nameTableOffset = -1;
+            if ("ttcf".equals(hdr)) {
+                // قراءة TTC header: تخطي الإصدار ثم قراءة عدد الخطوط ثم أخذ أول offset
+                raf.skipBytes(4);
+                // TTC version (major/minor)
+                int numFonts = raf.readInt();
+                if (numFonts > 0) {
+                    long firstOffset = ((long) raf.readInt()) & 0xFFFFFFFFL;
+                    raf.seek(firstOffset);
+                    // استمر كأننا في ملف خط عادي من هذا الإزاحة
+                } else {
+                    return "Unknown Font";
+                }
+            } else {
+                // لم يكن TTC، عد إلى بداية للتحقق من sfntVersion كقيمة int
+                raf.seek(0);
+            }
+
+            int sfntVersion = raf.readInt();
+            if (sfntVersion != 0x00010000 && sfntVersion != 0x4F54544F) {
+                return "Unknown Font";
+            }
+
+            int numTables = raf.readUnsignedShort();
+            raf.skipBytes(6);
+            for (int i = 0; i < numTables; i++) {
+                byte[] tag = new byte[4];
+                raf.readFully(tag);
+                String tagName = new String(tag, StandardCharsets.US_ASCII);
+
+                raf.skipBytes(4);
+                long offset = readUInt32(raf);
+                readUInt32(raf);
+                if ("name".equals(tagName)) {
+                    nameTableOffset = offset;
+                    break;
+                }
+            }
+
+            if (nameTableOffset == -1) {
+                return "Unknown Font";
+            }
+
+            raf.seek(nameTableOffset);
+            raf.readUnsignedShort();
+            int count = raf.readUnsignedShort();
+            int stringOffset = raf.readUnsignedShort();
+
+            String fontName = null;
+            String familyName = null;
+            for (int i = 0; i < count; i++) {
+                int platformID = raf.readUnsignedShort();
+                raf.readUnsignedShort(); // encodingID
+                raf.readUnsignedShort();
+                // languageID
+                int nameID = raf.readUnsignedShort();
+                int length = raf.readUnsignedShort();
+                int offset = raf.readUnsignedShort();
+
+                long currentPos = raf.getFilePointer();
+                raf.seek(nameTableOffset + stringOffset + offset);
+                byte[] nameBytes = new byte[length];
+                raf.readFully(nameBytes);
+
+                String name;
+                if (platformID == 3 || platformID == 0) {
+                    name = new String(nameBytes, StandardCharsets.UTF_16BE);
+                } else if (platformID == 1) {
+                    try {
+                        name = new String(nameBytes, Charset.forName("MacRoman"));
+                    } catch (Exception ex) {
+                        name = new String(nameBytes, StandardCharsets.ISO_8859_1);
+                    }
+                } else {
+                    name = new String(nameBytes, StandardCharsets.ISO_8859_1);
+                }
+
+                if (nameID == 4 && (fontName == null || fontName.isEmpty())) {
+                    fontName = name;
+                } else if (nameID == 1 && (familyName == null || familyName.isEmpty())) {
+                    familyName = name;
+                } else if (nameID == 6 && (fontName == null || fontName.isEmpty())) {
+                    // اسم PostScript قد يكون مفيداً كبديل
+                    fontName = fontName == null ?
+                            name : fontName;
+                }
+
+                raf.seek(currentPos);
+                if (fontName != null) {
+                    break;
+                }
+            }
+
+            return fontName != null ?
+                    fontName : (familyName != null ? familyName : "Unknown Font");
+        } catch (Exception e) {
+            Log.w(TAG, "Failed to extract font real name: " + e.getMessage());
+            return "Unknown Font";
+        }
     }
+
+    private long readUInt32(RandomAccessFile raf) throws Exception {
+        return ((long) raf.readInt()) & 0xFFFFFFFFL;
+    }
+}
