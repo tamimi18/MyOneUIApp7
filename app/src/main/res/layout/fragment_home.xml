@@ -153,7 +153,6 @@
                     android:text="@string/title_about"
                     android:textSize="22sp"
                     android:textColor="?android:attr/textColorPrimary"
-                    android:fontFamily="sans-serif-medium"
                     android:layout_marginTop="24dp"
                     android:layout_marginBottom="8dp" />
 
